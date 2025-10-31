@@ -1,5 +1,5 @@
 import { parseJson } from "../utils/http.js";
-import { sendMessage } from "../services/telegramService.js";
+import { sendMessage } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
 
 export async function handleSanityWebhook(request, env) {
@@ -9,7 +9,10 @@ export async function handleSanityWebhook(request, env) {
 
   const expected = env.SANITY_WEBHOOK_SECRET;
   if (expected) {
-    const incoming = request.headers.get("x-sanity-webhook-signature") || request.headers.get("x-sanity-webhook-secret") || "";
+    const incoming =
+      request.headers.get("x-sanity-webhook-signature") ||
+      request.headers.get("x-sanity-webhook-secret") ||
+      "";
     if (!incoming || incoming !== expected) {
       console.warn("Sanity: invalid or missing webhook secret");
       return new Response("Forbidden", { status: 403 });
@@ -27,14 +30,21 @@ export async function handleSanityWebhook(request, env) {
   const project = body.project || "site";
   const ids = body.ids || body.documents || [];
   const event = body.event || body.action || "update";
-  const title = (body.result && body.result.title) || (Array.isArray(ids) && ids[0]) || "(no title)";
+  const title =
+    (body.result && body.result.title) ||
+    (Array.isArray(ids) && ids[0]) ||
+    "(no title)";
 
-  const messageText = `Sanity publish event: ${event}\nProject: ${project}\nItem: ${title}\nIDs: ${JSON.stringify(ids)}`;
+  const messageText = `Sanity publish event: ${event}\nProject: ${project}\nItem: ${title}\nIDs: ${JSON.stringify(
+    ids
+  )}`;
 
   const botToken = env.BOT_TOKEN;
 
   if (!botToken) {
-    console.error("Sanity: BOT_TOKEN not configured in environment — cannot forward webhook");
+    console.error(
+      "Sanity: BOT_TOKEN not configured in environment — cannot forward webhook"
+    );
     return new Response("ok", { status: 200 });
   }
 
@@ -53,8 +63,10 @@ export async function handleSanityWebhook(request, env) {
   const payloadTemplate = {
     text: messageText,
     reply_markup: {
-      inline_keyboard: [[{ text: "Open Blog", web_app: { url: blogUrl }, url: blogUrl }]]
-    }
+      inline_keyboard: [
+        [{ text: "Open Blog", web_app: { url: blogUrl }, url: blogUrl }],
+      ],
+    },
   };
 
   // Batch sends: send N at a time using Promise.all, then wait between batches

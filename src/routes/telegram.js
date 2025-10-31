@@ -2,7 +2,7 @@ import { parseJson } from "../utils/http.js";
 import {
   sendMessage,
   answerCallbackQuery,
-} from "../services/telegramService.js";
+} from "../services/telegram/index.js";
 import { addSubscriber, isSubscribed } from "../services/subscribers/index.js";
 
 /**
