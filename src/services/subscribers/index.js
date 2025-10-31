@@ -27,9 +27,37 @@ export async function addSubscriber({ chatId, first_name, username }, env) {
 export async function listSubscribers(env) {
   const d1 = env.DB;
   if (d1 && typeof d1.prepare === "function") {
-    const res = await d1.prepare("SELECT telegram_id, first_name, username, subscribed_at FROM subscribers").all();
+    const res = await d1
+      .prepare(
+        "SELECT telegram_id, first_name, username, subscribed_at FROM subscribers"
+      )
+      .all();
     return res.results || [];
   }
 
   return [];
+}
+
+/**
+ * isSubscribed - check whether the given chatId is present in subscribers
+ * Returns true if present, false otherwise. Works with D1 only (DB binding `env.DB`).
+ */
+export async function isSubscribed(chatId, env) {
+  const key = String(chatId);
+  const d1 = env.DB;
+  if (d1 && typeof d1.prepare === "function") {
+    try {
+      const res = await d1
+        .prepare("SELECT 1 FROM subscribers WHERE telegram_id = ? LIMIT 1")
+        .bind(key)
+        .first();
+      return !!(res && Object.keys(res).length > 0);
+    } catch (err) {
+      console.warn("Subscribers: D1 isSubscribed check failed:", err);
+      return false;
+    }
+  }
+
+  // No persistence mechanism configured
+  return false;
 }

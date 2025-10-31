@@ -1,6 +1,6 @@
 import { parseJson } from "../utils/http.js";
 import { sendMessage } from "../services/telegramService.js";
-import { addSubscriber } from "../services/subscribers/index.js";
+import { addSubscriber, isSubscribed } from "../services/subscribers/index.js";
 
 /**
  * handleTelegramUpdate - process incoming Telegram webhook updates.
@@ -67,13 +67,28 @@ export async function handleTelegramUpdate(request, env) {
   if (!chatId) return new Response("ok", { status: 200 });
 
   if (text.toLowerCase().startsWith("/start")) {
-    // reply with WebApp button (service handles formatting)
-    const blogUrl = env.BLOG_URL || "https://kaluwala.in";
+    const telegramPageUrl = `${env.BLOG_URL || "https://kaluwala.in"}/telegram`;
+    const homePageUrl = env.BLOG_URL || "https://kaluwala.in";
+
+    // If the user is already subscribed, open the home page directly; otherwise open the Telegram-specific page
+    let openUrl = telegramPageUrl;
+    try {
+      const subscribed = await isSubscribed(chatId, env);
+      if (subscribed) openUrl = homePageUrl;
+    } catch (err) {
+      console.warn(
+        "Telegram: isSubscribed check failed, defaulting to telegramPageUrl",
+        err
+      );
+    }
+
     const payload = {
       chat_id: chatId,
       text: "View Kaluwala insights inside the Telegram app.",
       reply_markup: {
-        inline_keyboard: [[{ text: "Open Blog", web_app: { url: blogUrl } }]],
+        inline_keyboard: [
+          [{ text: "Open Blog", web_app: { url: openUrl }, url: openUrl }],
+        ],
       },
     };
 
