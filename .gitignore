@@ -1,0 +1,9 @@
+node_modules/
+.dist/
+dist/
+.env
+.env.local
+.wrangler/
+wrangler.toml.local
+.DS_Store
+.vscode/

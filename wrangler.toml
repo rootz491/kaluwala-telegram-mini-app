@@ -1,0 +1,14 @@
+name = "telegram-miniapp-bot"
+main = "src/index.js"
+compatibility_date = "2025-10-31"
+type = "javascript"
+# workers_dev = true   # Uncomment to publish to workers.dev subdomain
+# account_id = ""      # Optional: fill in your Cloudflare account_id if you prefer
+#
+# Notes:
+# - Do NOT store BOT_TOKEN in this file. Use `wrangler secret put BOT_TOKEN "<token>"`.
+# - If you want the Worker to require a webhook secret token, set it with:
+#   `wrangler secret put WEBHOOK_SECRET "<your-secret-token>"`
+#
+# To publish:
+#   wrangler publish

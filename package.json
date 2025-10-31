@@ -1,0 +1,17 @@
+{
+  "name": "telegram-miniapp-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram Mini-App bot hosted on Cloudflare Workers. Sends an Open Blog web app button.",
+  "scripts": {
+    "login": "wrangler login",
+    "dev": "wrangler dev src/index.js",
+    "deploy": "wrangler publish"
+  },
+  "devDependencies": {
+    "wrangler": "^3.13.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
