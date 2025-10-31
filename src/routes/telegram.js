@@ -20,8 +20,46 @@ export async function handleTelegramUpdate(request, env) {
     return new Response("Bad Request", { status: 400 });
   }
 
-  const message = update.message || update.edited_message || (update.callback_query && update.callback_query.message);
+  const message =
+    update.message ||
+    update.edited_message ||
+    (update.callback_query && update.callback_query.message);
   if (!message) return new Response("ok", { status: 200 });
+
+  // Handle Web App sendData payload (message.web_app_data.data)
+  if (message.web_app_data && message.web_app_data.data) {
+    try {
+      const dataStr = message.web_app_data.data;
+      let payloadObj;
+      try {
+        payloadObj = JSON.parse(dataStr);
+      } catch (e) {
+        payloadObj = { raw: dataStr };
+      }
+
+      if (payloadObj && payloadObj.action === "subscribe") {
+        const chatIdInner = message.chat && message.chat.id;
+        if (chatIdInner) {
+          await addSubscriber(
+            {
+              chatId: chatIdInner,
+              first_name: message.chat.first_name,
+              username: message.chat.username,
+            },
+            env
+          );
+          await sendMessage(env.BOT_TOKEN, {
+            chat_id: chatIdInner,
+            text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error handling web_app_data:", err);
+    }
+
+    return new Response("ok", { status: 200 });
+  }
 
   const text = (message.text || "").trim();
   const chatId = message.chat && message.chat.id;
@@ -35,8 +73,8 @@ export async function handleTelegramUpdate(request, env) {
       chat_id: chatId,
       text: "View Kaluwala insights inside the Telegram app.",
       reply_markup: {
-        inline_keyboard: [[{ text: "Open Blog", web_app: { url: blogUrl } }]]
-      }
+        inline_keyboard: [[{ text: "Open Blog", web_app: { url: blogUrl } }]],
+      },
     };
 
     try {
@@ -50,7 +88,14 @@ export async function handleTelegramUpdate(request, env) {
 
   if (text.toLowerCase().startsWith("/subscribe")) {
     try {
-      const result = await addSubscriber({ chatId, first_name: message.chat.first_name, username: message.chat.username }, env);
+      const result = await addSubscriber(
+        {
+          chatId,
+          first_name: message.chat.first_name,
+          username: message.chat.username,
+        },
+        env
+      );
       const reply = result.persisted
         ? "You're subscribed to blog updates! We'll notify you when a new post is published."
         : "You're subscribed (ephemeral). To persist subscriptions across deploys, configure a Cloudflare KV namespace or D1 database binding.";
