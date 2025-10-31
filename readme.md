@@ -105,4 +105,3 @@ Short deployment checklist:
 - npm run deploy
 - set Telegram webhook with https://api.telegram.org/bot<token>/setWebhook?url=<worker_url>&secret_token=<secret>
 - Test by sending `/start` to your bot
-# Kaluwala telegram bot

@@ -2,16 +2,6 @@ name = "kaluwala-telegram"
 main = "src/index.js"
 compatibility_date = "2025-10-31"
 type = "javascript"
-# workers_dev = true   # Uncomment to publish to workers.dev subdomain
-# account_id = ""      # Optional: fill in your Cloudflare account_id if you prefer
-#
-# Notes:
-# - Do NOT store BOT_TOKEN in this file. Use `wrangler secret put BOT_TOKEN "<token>"`.
-# - If you want the Worker to require a webhook secret token, set it with:
-#   `wrangler secret put WEBHOOK_SECRET "<your-secret-token>"`
-#
-# To publish:
-#   wrangler publish
 
 [observability]
 	[observability.logs]
@@ -19,3 +9,8 @@ type = "javascript"
 	# head_sampling_rate is a float between 0 and 1 (1 = sample all heads). Keep as number.
 	head_sampling_rate = 1
 	invocation_logs = true
+
+[[d1_databases]]
+	binding = "DB"  # This is what will appear as env.DB
+	database_name = "kaluwala_db"
+	database_id = "a264c880-5aa2-41f2-bb48-25f560b0db4a"
