@@ -1,5 +1,8 @@
 import { parseJson } from "../utils/http.js";
-import { sendMessage } from "../services/telegramService.js";
+import {
+  sendMessage,
+  answerCallbackQuery,
+} from "../services/telegramService.js";
 import { addSubscriber, isSubscribed } from "../services/subscribers/index.js";
 
 /**
@@ -18,6 +21,89 @@ export async function handleTelegramUpdate(request, env) {
   } catch (err) {
     console.error("Telegram: failed to parse JSON:", err);
     return new Response("Bad Request", { status: 400 });
+  }
+
+  // Handle callback_query from inline buttons (may contain .data with JSON or broken JSON)
+  if (update.callback_query) {
+    const cq = update.callback_query;
+    const callbackId = cq.id;
+    const from = cq.from || {};
+    const chatIdFromMessage =
+      (cq.message && cq.message.chat && cq.message.chat.id) || from.id;
+    const raw = cq.data || "";
+
+    // Try to parse JSON, but tolerate malformed payloads by extracting fields with regex
+    let payloadObj = null;
+    try {
+      payloadObj = JSON.parse(raw);
+    } catch (e) {
+      // fallback: extract action/topic via regex
+      try {
+        const actionMatch = raw.match(/"action"\s*:\s*"([^"]+)"/);
+        const topicMatch = raw.match(/"topic"\s*:\s*"([^"]+)"/);
+        payloadObj = {};
+        if (actionMatch) payloadObj.action = actionMatch[1];
+        if (topicMatch) payloadObj.topic = topicMatch[1];
+        if (Object.keys(payloadObj).length === 0) payloadObj = { raw };
+      } catch (ex) {
+        payloadObj = { raw };
+      }
+    }
+
+    try {
+      // handle subscribe action
+      if (payloadObj && payloadObj.action === "subscribe") {
+        // use addSubscriber service
+        const targetChat = chatIdFromMessage;
+        if (targetChat) {
+          await addSubscriber(
+            {
+              chatId: targetChat,
+              first_name: from.first_name,
+              username: from.username,
+            },
+            env
+          );
+          // answer callback to acknowledge button press
+          try {
+            await sendMessage(env.BOT_TOKEN, {
+              chat_id: targetChat,
+              text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
+            });
+            // reply to callback to remove loading state
+            await answerCallbackQuery(
+              env.BOT_TOKEN,
+              callbackId,
+              "Subscribed",
+              false
+            );
+          } catch (err) {
+            console.error(
+              "Telegram: failed to confirm subscription after callback:",
+              err
+            );
+          }
+        } else {
+          // still answer callback
+          await answerCallbackQuery(
+            env.BOT_TOKEN,
+            callbackId,
+            "Subscribed",
+            false
+          );
+        }
+      } else {
+        // unknown callback payload — acknowledge to stop spinner
+        await answerCallbackQuery(env.BOT_TOKEN, callbackId, null, false);
+      }
+    } catch (err) {
+      console.error("Telegram: error handling callback_query:", err);
+      try {
+        await answerCallbackQuery(env.BOT_TOKEN, callbackId, "Error", true);
+      } catch (e) {}
+    }
+
+    return new Response("ok", { status: 200 });
   }
 
   const message =
