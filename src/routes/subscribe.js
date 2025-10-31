@@ -1,6 +1,6 @@
 import { parseJson } from "../utils/http.js";
 import { addSubscriber } from "../services/subscribers/index.js";
-import { sendMessage } from "../services/telegramService.js";
+import { sendMessage } from "../services/telegram/index.js";
 
 /**
  * HTTP endpoint to register a new subscriber via POST JSON body.
