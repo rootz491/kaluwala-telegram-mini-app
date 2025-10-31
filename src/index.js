@@ -98,8 +98,7 @@ async function handleStartCommand(message, env) {
       [
         {
           text: "Open Blog",
-          web_app: { url: blogUrl },
-          url: blogUrl
+          web_app: { url: blogUrl }
         }
       ]
     ]
