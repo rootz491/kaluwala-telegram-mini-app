@@ -37,17 +37,7 @@ export async function handleTelegramUpdate(request, env) {
     try {
       payloadObj = JSON.parse(raw);
     } catch (e) {
-      // fallback: extract action/topic via regex
-      try {
-        const actionMatch = raw.match(/"action"\s*:\s*"([^"]+)"/);
-        const topicMatch = raw.match(/"topic"\s*:\s*"([^"]+)"/);
-        payloadObj = {};
-        if (actionMatch) payloadObj.action = actionMatch[1];
-        if (topicMatch) payloadObj.topic = topicMatch[1];
-        if (Object.keys(payloadObj).length === 0) payloadObj = { raw };
-      } catch (ex) {
-        payloadObj = { raw };
-      }
+      return new Response("failed", { status: 500 });
     }
 
     try {
