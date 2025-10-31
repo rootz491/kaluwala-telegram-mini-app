@@ -86,9 +86,7 @@ export async function handleTelegramUpdate(request, env) {
       chat_id: chatId,
       text: "View Kaluwala insights inside the Telegram app.",
       reply_markup: {
-        inline_keyboard: [
-          [{ text: "Open Blog", web_app: { url: openUrl }, url: openUrl }],
-        ],
+        inline_keyboard: [[{ text: "Open Blog", web_app: { url: openUrl } }]],
       },
     };
 
