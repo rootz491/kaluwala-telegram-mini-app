@@ -85,10 +85,10 @@ async function handleStartCommand(message, env) {
   }
 
   // BLOG_URL can be overridden with an env secret/variable if desired
-  const blogUrl = env.BLOG_URL || "https://myblog.example.com";
+  const blogUrl = env.BLOG_URL || "https://kaluwala.in";
 
   const text =
-    "Welcome! Click the button below to open the blog inside Telegram's Web App view.";
+    "View Kaluwala insights inside the Telegram app.";
 
   // Build inline keyboard with a Web App button and fallback url.
   // The `web_app` field opens the page inside Telegram Web App (if client supports it).

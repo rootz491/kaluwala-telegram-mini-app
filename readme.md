@@ -5,7 +5,7 @@ This project provides a Cloudflare Worker that acts as a Telegram bot which can 
 ## What this does
 - Receives Telegram webhook updates.
 - Responds to the `/start` command by sending a message with an inline keyboard button.
-- The button opens `https://myblog.example.com` inside Telegram's Web App (and falls back to opening the URL if Web App is unsupported).
+- The button opens `https://kaluwala.in` inside Telegram's Web App (and falls back to opening the URL if Web App is unsupported).
 
 ## Files
 - `src/index.js` - Cloudflare Worker source code (webhook handler, Telegram API calls).
