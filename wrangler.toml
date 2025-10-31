@@ -19,4 +19,3 @@ type = "javascript"
 	# head_sampling_rate is a float between 0 and 1 (1 = sample all heads). Keep as number.
 	head_sampling_rate = 1
 	invocation_logs = true
-	persist = true
