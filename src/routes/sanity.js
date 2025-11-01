@@ -54,18 +54,20 @@ export async function handleSanityWebhook(request, env) {
 
   console.log("Sanity: webhook payload:", JSON.stringify(body, null, 2));
 
-  const messageText = `📝 <b>New Post Published!</b>
+  const messageText = `📝 <b>${title}</b>
 ✍️ By ${authorName}
 Check it out now!`;
 
   // Build per-subscriber message payload (includes Web App button pointing to specific post)
   const payloadTemplate = {
     photo: mainImageUrl,
-    caption: title,
-    text: messageText,
+    caption: messageText,
     parse_mode: "HTML",
     reply_markup: {
-      inline_keyboard: [[{ text: "📖 Read Post", web_app: { url: postUrl } }]],
+      inline_keyboard: [
+        [{ text: "🌐 open in web", url: postUrl }],
+        [{ text: "📖 open in telegram", web_app: { url: postUrl } }],
+      ],
     },
   };
 
