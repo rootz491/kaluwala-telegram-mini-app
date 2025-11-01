@@ -37,7 +37,12 @@ export async function handleWebAppData(message, env) {
         env
       );
 
-      if (result.error === "invalid_user") {
+      if (result.error === "already_subscribed") {
+        await sendMessage(env.BOT_TOKEN, {
+          chat_id: chatId,
+          text: "You're already subscribed! 😊 Sit back and relax, we'll notify you when new content drops.",
+        });
+      } else if (result.error === "invalid_user") {
         await sendMessage(env.BOT_TOKEN, {
           chat_id: chatId,
           text: "Sorry, we couldn't verify your Telegram account. Please try again later.",

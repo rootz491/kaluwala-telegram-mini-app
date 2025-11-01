@@ -65,6 +65,30 @@ export async function handleSubscribeEndpoint(request, env) {
     });
 
     // Check for validation error
+    if (result.error === "already_subscribed") {
+      // Send a friendly message to already subscribed users
+      if (env.BOT_TOKEN) {
+        try {
+          await sendMessage(env.BOT_TOKEN, {
+            chat_id: telegram_id,
+            text: "You're already subscribed! 😊 Sit back and relax, we'll notify you when new content drops.",
+          });
+        } catch (err) {
+          console.warn(
+            "Subscribe endpoint: failed to send already subscribed message:",
+            err
+          );
+        }
+      }
+      return new Response(
+        JSON.stringify({ error: "already_subscribed", persisted: false }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }
+      );
+    }
+
     if (result.error === "invalid_user") {
       return new Response(
         JSON.stringify({ error: "invalid_telegram_user", persisted: false }),

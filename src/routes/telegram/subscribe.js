@@ -23,7 +23,10 @@ export async function handleSubscribeCommand(message, env) {
     );
 
     let reply;
-    if (result.error === "invalid_user") {
+    if (result.error === "already_subscribed") {
+      reply =
+        "You're already subscribed! 😊 Sit back and relax, we'll notify you when new content drops.";
+    } else if (result.error === "invalid_user") {
       reply =
         "Sorry, we couldn't verify your Telegram account. Please try again later.";
     } else if (result.persisted) {

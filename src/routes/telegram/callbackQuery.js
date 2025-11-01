@@ -44,7 +44,23 @@ export async function handleCallbackQuery(callbackQuery, env) {
         env
       );
 
-      if (result.error === "invalid_user") {
+      if (result.error === "already_subscribed") {
+        // User is already subscribed
+        try {
+          await sendMessage(env.BOT_TOKEN, {
+            chat_id: targetChat,
+            text: "You're already subscribed! 😊 Sit back and relax, we'll notify you when new content drops.",
+          });
+          await answerCallbackQuery(
+            env.BOT_TOKEN,
+            callbackId,
+            "Already subscribed",
+            false
+          );
+        } catch (err) {
+          console.error("CallbackQuery: Failed to send already subscribed message:", err);
+        }
+      } else if (result.error === "invalid_user") {
         // Invalid Telegram user ID
         try {
           await sendMessage(env.BOT_TOKEN, {

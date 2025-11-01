@@ -7,6 +7,12 @@ import { validateChatId } from "../telegram/index.js";
 export async function addSubscriber({ chatId, first_name, username }, env) {
   const key = String(chatId);
 
+  // Check if already subscribed
+  const alreadySubscribed = await isSubscribed(key, env);
+  if (alreadySubscribed) {
+    return { persisted: false, error: "already_subscribed" };
+  }
+
   // Validate chat ID with Telegram API before persisting
   const isValid = await validateChatId(env.BOT_TOKEN, key);
   if (!isValid) {
