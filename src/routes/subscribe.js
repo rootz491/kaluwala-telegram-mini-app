@@ -83,7 +83,7 @@ export async function handleSubscribeEndpoint(request, env) {
             chat_id: telegram_id,
             text:
               body.confirmation_message ||
-              "You've been subscribed to blog updates.",
+              "You're subscribed to blog updates! We'll notify you when a new post is published.",
           });
         }
       } catch (err) {
