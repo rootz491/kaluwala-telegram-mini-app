@@ -1,7 +1,21 @@
 import { parseJson, verifySanitySignature } from "../utils/http.js";
 import { sendPhoto } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
+import { revalidateBlogPages } from "../utils/revalidate.js";
 
+/**
+ * Handle Sanity CMS webhook for new blog posts
+ *
+ * When a new post is published:
+ * 1. Triggers page revalidation on the blog website
+ * 2. Sends rich notifications to all subscribers with post image and links
+ *
+ * Requires env variables:
+ * - SANITY_WEBHOOK_SECRET: For webhook verification
+ * - REVALIDATE_SECRET: For blog revalidation API
+ * - BOT_TOKEN: For sending Telegram notifications
+ * - BLOG_URL: Base URL of the blog
+ */
 export async function handleSanityWebhook(request, env) {
   if (request.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
@@ -28,6 +42,17 @@ export async function handleSanityWebhook(request, env) {
   const authorName = (body.author && body.author.name) || "Karan Sharma";
   const slug = (body.slug && body.slug.current) || null;
   const mainImageUrl = body?.mainImage?.asset?.url || null;
+
+  // Trigger page revalidation on the blog website
+  // This runs in the background and won't block notification sending
+  const revalidatePaths = ["/blog", "/blog/all"];
+  if (slug) {
+    revalidatePaths.push(`/blog/${slug}`);
+  }
+
+  revalidateBlogPages(env, revalidatePaths).catch((err) => {
+    console.error("Sanity: Revalidation failed but continuing:", err);
+  });
 
   const botToken = env.BOT_TOKEN;
 
