@@ -23,8 +23,8 @@ export async function handleSanityWebhook(request, env) {
   const expected = env.SANITY_WEBHOOK_SECRET;
   if (expected) {
     const incoming =
-      request.headers.get("x-sanity-secret") ||
-      request.headers.get("x-sanity-signature") ||
+      request.headers.get("X-Sanity-Secret") ||
+      request.headers.get("X-Sanity-Signature") ||
       "";
     if (!incoming || incoming !== expected) {
       console.warn("Sanity: invalid or missing webhook secret");
