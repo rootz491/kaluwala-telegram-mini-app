@@ -27,6 +27,7 @@ export async function handleSanityWebhook(request, env) {
   const title = body.title || "New Post";
   const authorName = (body.author && body.author.name) || "Karan Sharma";
   const slug = (body.slug && body.slug.current) || null;
+  const mainImageUrl = body?.mainImage?.asset?.url || null;
 
   const botToken = env.BOT_TOKEN;
 
@@ -52,15 +53,13 @@ export async function handleSanityWebhook(request, env) {
   const postUrl = slug ? `${blogUrl}/blog/${slug}` : blogUrl;
 
   const messageText = `📝 <b>New Post Published!</b>
-
-<b>${title}</b>
-
 ✍️ By ${authorName}
-
 Check it out now!`;
 
   // Build per-subscriber message payload (includes Web App button pointing to specific post)
   const payloadTemplate = {
+    photo: mainImageUrl,
+    caption: title,
     text: messageText,
     parse_mode: "HTML",
     reply_markup: {
