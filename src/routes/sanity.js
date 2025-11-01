@@ -1,4 +1,4 @@
-import { parseJson } from "../utils/http.js";
+import { parseJson, verifySanitySignature } from "../utils/http.js";
 import { sendMessage } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
 
@@ -21,15 +21,10 @@ export async function handleSanityWebhook(request, env) {
   );
 
   const expected = env.SANITY_WEBHOOK_SECRET;
-  if (expected) {
-    const incoming =
-      request.headers.get("X-Sanity-Secret") ||
-      request.headers.get("X-Sanity-Signature") ||
-      "";
-    if (!incoming || incoming !== expected) {
-      console.warn("Sanity: invalid or missing webhook secret");
-      return new Response("Forbidden", { status: 403 });
-    }
+  const isValid = await verifySanitySignature(request, expected);
+  if (!isValid) {
+    console.warn("Sanity: invalid or missing webhook secret");
+    return new Response("Forbidden", { status: 403 });
   }
 
   try {
