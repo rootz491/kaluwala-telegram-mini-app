@@ -46,7 +46,7 @@ export async function handleTelegramUpdate(request, env) {
         // use addSubscriber service
         const targetChat = chatIdFromMessage;
         if (targetChat) {
-          await addSubscriber(
+          const result = await addSubscriber(
             {
               chatId: targetChat,
               first_name: from.first_name,
@@ -54,24 +54,46 @@ export async function handleTelegramUpdate(request, env) {
             },
             env
           );
-          // answer callback to acknowledge button press
-          try {
-            await sendMessage(env.BOT_TOKEN, {
-              chat_id: targetChat,
-              text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
-            });
-            // reply to callback to remove loading state
-            await answerCallbackQuery(
-              env.BOT_TOKEN,
-              callbackId,
-              "Subscribed",
-              false
-            );
-          } catch (err) {
-            console.error(
-              "Telegram: failed to confirm subscription after callback:",
-              err
-            );
+
+          if (result.error === "invalid_user") {
+            // Invalid Telegram user ID
+            try {
+              await sendMessage(env.BOT_TOKEN, {
+                chat_id: targetChat,
+                text: "Sorry, we couldn't verify your Telegram account. Please try again later.",
+              });
+              await answerCallbackQuery(
+                env.BOT_TOKEN,
+                callbackId,
+                "Verification failed",
+                true
+              );
+            } catch (err) {
+              console.error(
+                "Telegram: failed to send invalid user message:",
+                err
+              );
+            }
+          } else {
+            // Successfully subscribed
+            try {
+              await sendMessage(env.BOT_TOKEN, {
+                chat_id: targetChat,
+                text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
+              });
+              // reply to callback to remove loading state
+              await answerCallbackQuery(
+                env.BOT_TOKEN,
+                callbackId,
+                "Subscribed",
+                false
+              );
+            } catch (err) {
+              console.error(
+                "Telegram: failed to confirm subscription after callback:",
+                err
+              );
+            }
           }
         } else {
           // still answer callback
@@ -116,7 +138,7 @@ export async function handleTelegramUpdate(request, env) {
       if (payloadObj && payloadObj.action === "subscribe") {
         const chatIdInner = message.chat && message.chat.id;
         if (chatIdInner) {
-          await addSubscriber(
+          const result = await addSubscriber(
             {
               chatId: chatIdInner,
               first_name: message.chat.first_name,
@@ -124,10 +146,18 @@ export async function handleTelegramUpdate(request, env) {
             },
             env
           );
-          await sendMessage(env.BOT_TOKEN, {
-            chat_id: chatIdInner,
-            text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
-          });
+
+          if (result.error === "invalid_user") {
+            await sendMessage(env.BOT_TOKEN, {
+              chat_id: chatIdInner,
+              text: "Sorry, we couldn't verify your Telegram account. Please try again later.",
+            });
+          } else {
+            await sendMessage(env.BOT_TOKEN, {
+              chat_id: chatIdInner,
+              text: "Thanks — you're subscribed to blog updates! We'll send a message when a new post is published.",
+            });
+          }
         }
       }
     } catch (err) {
@@ -185,9 +215,15 @@ export async function handleTelegramUpdate(request, env) {
         },
         env
       );
-      const reply = result.persisted
-        ? "You're subscribed to blog updates! We'll notify you when a new post is published."
-        : "You're subscribed (ephemeral). To persist subscriptions across deploys, configure a Cloudflare KV namespace or D1 database binding.";
+
+      let reply;
+      if (result.error === "invalid_user") {
+        reply = "Sorry, we couldn't verify your Telegram account. Please try again later.";
+      } else if (result.persisted) {
+        reply = "You're subscribed to blog updates! We'll notify you when a new post is published.";
+      } else {
+        reply = "You're subscribed (ephemeral). To persist subscriptions across deploys, configure a Cloudflare KV namespace or D1 database binding.";
+      }
 
       await sendMessage(env.BOT_TOKEN, { chat_id: chatId, text: reply });
     } catch (err) {

@@ -40,3 +40,32 @@ export async function answerCallbackQuery(botToken, callbackQueryId, text = null
 
   return resp.json().catch(() => null);
 }
+
+/**
+ * Validate if a chat ID is accessible by the bot.
+ * Uses Telegram getChat API to check if the user/chat exists and the bot can interact with it.
+ * Returns true if valid, false otherwise.
+ */
+export async function validateChatId(botToken, chatId) {
+  if (!botToken) throw new Error("BOT_TOKEN not configured");
+  const url = `https://api.telegram.org/bot${encodeURIComponent(botToken)}/getChat`;
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId }),
+    });
+
+    if (!resp.ok) {
+      // 400 or 403 means invalid/inaccessible chat
+      return false;
+    }
+
+    const result = await resp.json().catch(() => null);
+    return !!(result && result.ok && result.result);
+  } catch (err) {
+    console.warn("validateChatId: error calling getChat:", err);
+    return false;
+  }
+}

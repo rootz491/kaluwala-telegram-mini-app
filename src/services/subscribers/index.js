@@ -1,10 +1,18 @@
+import { validateChatId } from "../telegram/index.js";
+
 /**
  * Subscribers service
  * - Provides an abstraction for persisting subscriber chat ids.
  */
-
 export async function addSubscriber({ chatId, first_name, username }, env) {
   const key = String(chatId);
+
+  // Validate chat ID with Telegram API before persisting
+  const isValid = await validateChatId(env.BOT_TOKEN, key);
+  if (!isValid) {
+    console.warn(`Subscribers: Invalid chat ID ${key}, refusing to add`);
+    return { persisted: false, error: "invalid_user" };
+  }
 
   const d1 = env.DB;
   if (d1 && typeof d1.prepare === "function") {
@@ -24,6 +32,9 @@ export async function addSubscriber({ chatId, first_name, username }, env) {
   return { persisted: false };
 }
 
+/**
+ * listSubscribers - fetch all subscribers
+ */
 export async function listSubscribers(env) {
   const d1 = env.DB;
   if (d1 && typeof d1.prepare === "function") {

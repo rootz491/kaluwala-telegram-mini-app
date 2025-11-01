@@ -1,4 +1,4 @@
-import { parseJson, verifySanitySignature } from "../utils/http.js";
+import { parseJson } from "../utils/http.js";
 import { sendMessage } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
 

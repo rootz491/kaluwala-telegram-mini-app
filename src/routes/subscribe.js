@@ -57,22 +57,35 @@ export async function handleSubscribeEndpoint(request, env) {
       env
     );
 
-    // Optionally send a confirmation message if BOT_TOKEN available
-    try {
-      if (env.BOT_TOKEN) {
-        await sendMessage(env.BOT_TOKEN, {
-          chat_id: telegram_id,
-          text:
-            body.confirmation_message ||
-            "You've been subscribed to blog updates.",
-        });
-      }
-    } catch (err) {
-      // non-fatal: log and continue
-      console.warn(
-        "Subscribe endpoint: failed to send confirmation message:",
-        err
+    // Check for validation error
+    if (result.error === "invalid_user") {
+      return new Response(
+        JSON.stringify({ error: "invalid_telegram_user", persisted: false }),
+        {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        }
       );
+    }
+
+    // Optionally send a confirmation message if BOT_TOKEN available and subscription succeeded
+    if (result.persisted) {
+      try {
+        if (env.BOT_TOKEN) {
+          await sendMessage(env.BOT_TOKEN, {
+            chat_id: telegram_id,
+            text:
+              body.confirmation_message ||
+              "You've been subscribed to blog updates.",
+          });
+        }
+      } catch (err) {
+        // non-fatal: log and continue
+        console.warn(
+          "Subscribe endpoint: failed to send confirmation message:",
+          err
+        );
+      }
     }
 
     return new Response(JSON.stringify(result), {
