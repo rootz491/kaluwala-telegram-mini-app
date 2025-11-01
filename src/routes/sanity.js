@@ -7,15 +7,14 @@ export async function handleSanityWebhook(request, env) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  let body;
-  body = await parseJson(request);
-  const expected = env.SANITY_WEBHOOK_SECRET;
-
+  // const expected = env.SANITY_WEBHOOK_SECRET;
   // const isValid = await verifySanitySignature(request, expected);
   // if (!isValid) {
   //   console.warn("Sanity: invalid or missing webhook secret");
   //   return new Response("Forbidden", { status: 403 });
   // }
+
+  let body;
 
   try {
     body = await parseJson(request);
