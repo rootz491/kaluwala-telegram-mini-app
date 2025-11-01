@@ -57,13 +57,6 @@ export async function handleSubscribeEndpoint(request, env) {
       env
     );
 
-    console.log({
-      result,
-      telegram_id,
-      first_name,
-      username,
-    });
-
     // Check for validation error
     if (result.error === "already_subscribed") {
       // Send a friendly message to already subscribed users
