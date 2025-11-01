@@ -21,6 +21,7 @@ export async function handleSanityWebhook(request, env) {
   );
 
   const expected = env.SANITY_WEBHOOK_SECRET;
+  console.log(expected);
   const isValid = await verifySanitySignature(request, expected);
   if (!isValid) {
     console.warn("Sanity: invalid or missing webhook secret");
