@@ -1,5 +1,5 @@
 import { parseJson, verifySanitySignature } from "../utils/http.js";
-import { sendMessage } from "../services/telegram/index.js";
+import { sendPhoto } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
 
 export async function handleSanityWebhook(request, env) {
@@ -52,8 +52,6 @@ export async function handleSanityWebhook(request, env) {
   const blogUrl = env.BLOG_URL || "https://kaluwala.in";
   const postUrl = slug ? `${blogUrl}/blog/${slug}` : blogUrl;
 
-  console.log("Sanity: webhook payload:", JSON.stringify(body, null, 2));
-
   const messageText = `📝 <b>${title}</b>
 ✍️ By ${authorName}
 Check it out now!`;
@@ -62,6 +60,7 @@ Check it out now!`;
   const payloadTemplate = {
     photo: mainImageUrl,
     caption: messageText,
+    text: messageText,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
@@ -102,7 +101,7 @@ Check it out now!`;
     // map to promises that swallow errors to avoid Promise.all rejecting early
     const promises = batch.map((chatId) => {
       const payload = Object.assign({ chat_id: chatId }, payloadTemplate);
-      return sendMessage(botToken, payload).catch((err) => {
+      return sendPhoto(botToken, payload).catch((err) => {
         console.error(`Sanity: failed to send notification to ${chatId}:`, err);
         return null; // swallow error for this recipient
       });
