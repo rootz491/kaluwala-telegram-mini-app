@@ -52,6 +52,8 @@ export async function handleSanityWebhook(request, env) {
   const blogUrl = env.BLOG_URL || "https://kaluwala.in";
   const postUrl = slug ? `${blogUrl}/blog/${slug}` : blogUrl;
 
+  console.log("Sanity: webhook payload:", JSON.stringify(body, null, 2));
+
   const messageText = `📝 <b>New Post Published!</b>
 ✍️ By ${authorName}
 Check it out now!`;
