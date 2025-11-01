@@ -7,7 +7,18 @@ export async function handleSanityWebhook(request, env) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  console.log(JSON.stringify({ request }, null, 2));
+  let body;
+  body = await parseJson(request);
+  console.log(
+    JSON.stringify(
+      {
+        headers: request.headers,
+        body,
+      },
+      null,
+      2
+    )
+  );
 
   const expected = env.SANITY_WEBHOOK_SECRET;
   if (expected) {
@@ -21,7 +32,6 @@ export async function handleSanityWebhook(request, env) {
     }
   }
 
-  let body;
   try {
     body = await parseJson(request);
   } catch (err) {
