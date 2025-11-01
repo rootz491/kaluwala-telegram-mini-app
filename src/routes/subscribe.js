@@ -57,6 +57,13 @@ export async function handleSubscribeEndpoint(request, env) {
       env
     );
 
+    console.log({
+      result,
+      telegram_id,
+      first_name,
+      username,
+    });
+
     // Check for validation error
     if (result.error === "invalid_user") {
       return new Response(
