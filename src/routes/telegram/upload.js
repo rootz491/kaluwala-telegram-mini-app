@@ -94,12 +94,12 @@ async function processPhotoUpload(message, env) {
     const filePath = fileData.result.file_path;
     const fileSize = fileData.result.file_size;
 
-    // Validate file size (e.g., max 10MB for safety)
-    const maxSizeBytes = 10 * 1024 * 1024;
+    // Validate file size (e.g., max 2MB for safety)
+    const maxSizeBytes = 2 * 1024 * 1024;
     if (fileSize > maxSizeBytes) {
       await sendMessage(botToken, {
         chat_id: chatId,
-        text: `❌ File too large (${(fileSize / 1024 / 1024).toFixed(1)}MB). Max 10MB.`,
+        text: `❌ File too large (${(fileSize / 1024 / 1024).toFixed(1)}MB). Max 2MB.`,
       });
       return;
     }
