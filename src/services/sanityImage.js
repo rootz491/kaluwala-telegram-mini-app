@@ -8,16 +8,16 @@
  * Environment variables required:
  * - SANITY_PROJECT_ID
  * - SANITY_DATASET (optional, defaults to 'production')
- * - SANITY_TOKEN
+ * - SANITY_WEBHOOK_SECRET
  */
 
 export async function uploadImageAsset(fileBlob, filename, contentType, env) {
   const projectId = env.SANITY_PROJECT_ID;
-  const dataset = env.SANITY_DATASET || "production";
-  const token = env.SANITY_TOKEN;
+  const dataset = "production";
+  const token = env.SANITY_WEBHOOK_SECRET;
 
   if (!projectId || !token) {
-    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_TOKEN not configured in env");
+    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_WEBHOOK_SECRET not configured in env");
   }
 
   const url = `https://${projectId}.api.sanity.io/v2022-12-07/assets/images/${dataset}`;
@@ -49,11 +49,11 @@ export async function uploadImageAsset(fileBlob, filename, contentType, env) {
 
 export async function createGalleryDocument({ assetRef, telegramId, status = "pending" }, env) {
   const projectId = env.SANITY_PROJECT_ID;
-  const dataset = env.SANITY_DATASET || "production";
-  const token = env.SANITY_TOKEN;
+  const dataset = "production";
+  const token = env.SANITY_WEBHOOK_SECRET;
 
   if (!projectId || !token) {
-    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_TOKEN not configured in env");
+    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_WEBHOOK_SECRET not configured in env");
   }
 
   const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/mutate/${dataset}`;
