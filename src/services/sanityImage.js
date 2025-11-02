@@ -22,17 +22,17 @@ export async function uploadImageAsset(fileBlob, filename, contentType, env) {
 
   const url = `https://${projectId}.api.sanity.io/v2022-12-07/assets/images/${dataset}`;
 
-  // `fileBlob` is expected to be a File/Blob (as returned by Request.formData())
-  const form = new FormData();
-  form.append("file", fileBlob, filename);
+  // Convert Blob to ArrayBuffer for reliable binary handling
+  const arrayBuffer = await fileBlob.arrayBuffer();
 
   const resp = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      // Note: Do not set Content-Type here; the browser/worker will set the multipart boundary
+      "Content-Type": contentType || "image/jpeg",
+      "Filename": filename,
     },
-    body: form,
+    body: arrayBuffer,
   });
 
   if (!resp.ok) {
