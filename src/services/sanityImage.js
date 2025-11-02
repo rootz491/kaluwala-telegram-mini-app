@@ -47,7 +47,7 @@ export async function uploadImageAsset(fileBlob, filename, contentType, env) {
   return { assetId, raw: json };
 }
 
-export async function createGalleryDocument({ assetRef, telegramId, status = "pending" }, env) {
+export async function createGalleryDocument({ assetRef, telegramId, status = "pending", userInfo = {} }, env) {
   const projectId = env.SANITY_PROJECT_ID;
   const dataset = "production";
   const token = env.SANITY_API_TOKEN;
@@ -71,6 +71,9 @@ export async function createGalleryDocument({ assetRef, telegramId, status = "pe
             },
           },
           telegramId: telegramId ? String(telegramId) : null,
+          firstName: userInfo?.first_name || null,
+          username: userInfo?.username || null,
+          uploadedAt: new Date().toISOString(),
           status,
         },
       },

@@ -55,7 +55,7 @@ export async function handleSanityImageUpload(request, env) {
       });
     }
 
-    const createRes = await createGalleryDocument({ assetRef: assetId, telegramId, status: "pending" }, env);
+    const createRes = await createGalleryDocument({ assetRef: assetId, telegramId, userInfo: {}, status: "pending" }, env);
 
     return new Response(JSON.stringify({ ok: true, assetId, createRes }), {
       status: 201,

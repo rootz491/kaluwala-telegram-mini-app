@@ -147,6 +147,10 @@ async function processPhotoUpload(message, env) {
       {
         assetRef: assetId,
         telegramId: chatId,
+        userInfo: {
+          first_name: message?.from?.first_name,
+          username: message?.from?.username,
+        },
         status: "pending",
       },
       env
