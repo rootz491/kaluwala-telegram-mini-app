@@ -22,7 +22,7 @@ export async function handleUploadCommand(message, env) {
   // Otherwise, prompt user to send a photo
   const payload = {
     chat_id: chatId,
-    text: "📸 Send a photo to upload to the gallery!\n\nJust reply with your image.",
+    text: "📷 Upload your best shot to feature in our community gallery!\n(Each submission goes through a quick moderation process before approval.)",
   };
 
   try {
@@ -140,7 +140,7 @@ async function processPhotoUpload(message, env) {
     // Success!
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: "✅ Image uploaded successfully!\n\nYour photo has been added to the gallery with pending status.",
+      text: "✅ Image uploaded successfully!\nYour photo has been submitted and is now awaiting review.\nYou’ll be notified once it’s approved and added to the gallery!",
     });
 
     console.log(`Upload: success for chat ${chatId}, assetId: ${assetId}`);
