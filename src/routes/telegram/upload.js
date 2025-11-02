@@ -1,5 +1,5 @@
 import { sendMessage } from "../../services/telegram/index.js";
-import { uploadImageAsset, createGalleryDocument } from "../../services/sanityImage.js";
+import { uploadImageAsset, createGalleryDocument, countPendingPhotos } from "../../services/sanityImage.js";
 
 /**
  * Handle /upload command or photo messages
@@ -102,6 +102,21 @@ async function processPhotoUpload(message, env) {
         text: `❌ File too large (${(fileSize / 1024 / 1024).toFixed(1)}MB). Max 2MB.`,
       });
       return;
+    }
+
+    // Check pending photo limit (max 5 per user)
+    try {
+      const pendingCount = await countPendingPhotos(chatId, env);
+      if (pendingCount >= 5) {
+        await sendMessage(botToken, {
+          chat_id: chatId,
+          text: `⏸️ You currently have ${pendingCount} photos awaiting review.\nPlease wait until some are approved before uploading new ones.\nYou can have up to 5 pending photos at a time.`,
+        });
+        return;
+      }
+    } catch (err) {
+      console.warn("Upload: failed to check pending photo count:", err);
+      // Don't block upload if the check fails, just warn
     }
 
     // Step 2: Download the file from Telegram CDN

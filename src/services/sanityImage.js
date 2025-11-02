@@ -93,3 +93,37 @@ export async function createGalleryDocument({ assetRef, telegramId, status = "pe
 
   return resp.json();
 }
+
+/**
+ * Count pending gallery documents for a user
+ * Returns the number of pending photos from this telegramId
+ */
+export async function countPendingPhotos(telegramId, env) {
+  const projectId = env.SANITY_PROJECT_ID;
+  const dataset = "production";
+  const token = env.SANITY_API_TOKEN;
+
+  if (!projectId || !token) {
+    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_API_TOKEN not configured in env");
+  }
+
+  const chatIdStr = String(telegramId);
+  // GROQ query to count pending gallery docs for this user
+  const query = `count(*[_type == "gallery" && status == "pending" && telegramId == "${chatIdStr}"])`;
+  const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}?query=${encodeURIComponent(query)}`;
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!resp.ok) {
+    console.warn(`Sanity: countPendingPhotos query failed ${resp.status}`);
+    throw new Error(`Sanity query failed: ${resp.status}`);
+  }
+
+  const json = await resp.json();
+  return json.result || 0;
+}
