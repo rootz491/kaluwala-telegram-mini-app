@@ -4,6 +4,7 @@ import {
   handleSubscribeCommand,
   handleCallbackQuery,
   handleWebAppData,
+  handleUploadCommand,
 } from "./telegram/index.js";
 
 /**
@@ -47,6 +48,16 @@ export async function handleTelegramUpdate(request, env) {
     return new Response("ok", { status: 200 });
   }
 
+  // Handle photo uploads (standalone or in reply)
+  if (message.photo && message.photo.length > 0) {
+    try {
+      await handleUploadCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Upload photo handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
   // Handle text commands
   const text = (message.text || "").trim();
   const chatId = message.chat?.id;
@@ -70,6 +81,15 @@ export async function handleTelegramUpdate(request, env) {
       await handleSubscribeCommand(message, env);
     } catch (err) {
       console.error("Telegram: Subscribe command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/upload")) {
+    try {
+      await handleUploadCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Upload command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }
