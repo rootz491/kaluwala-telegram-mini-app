@@ -9,6 +9,7 @@ import {
   deleteGalleryDocument,
 } from "../../services/sanityImage.js";
 import { messages } from "../../services/messages.js";
+import { revalidateWebsitePages } from "../../utils/revalidate.js";
 
 /**
  * Handle moderation callback queries from approve/reject buttons
@@ -225,6 +226,11 @@ export async function handleModerationCallback(callbackQuery, env) {
     } catch (err) {
       console.warn(`Moderation: ${messages.moderation.failedNotify}:`, err);
     }
+
+    // revalidate gallery page to reflect changes
+    revalidateWebsitePages(env, ["/gallery"]).catch((err) => {
+      console.error("Moderation: Revalidation failed:", err);
+    });
   } catch (err) {
     console.error("Moderation: update failed:", err);
     await answerCallbackQuery(

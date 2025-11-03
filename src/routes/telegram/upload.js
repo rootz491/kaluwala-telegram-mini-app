@@ -6,6 +6,7 @@ import {
 } from "../../services/sanityImage.js";
 import { isSubscribed } from "../../services/subscribers/index.js";
 import { messages } from "../../services/messages.js";
+import { revalidateWebsitePages } from "../../utils/revalidate.js";
 
 /**
  * Handle /upload command or photo messages
