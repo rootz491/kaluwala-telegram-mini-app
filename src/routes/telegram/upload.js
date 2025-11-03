@@ -179,7 +179,16 @@ async function processPhotoUpload(message, env) {
     );
 
     // Extract gallery document ID from Sanity mutation response
-    const galleryDocId = galleryRes?.results?.[0]?._id;
+    // Response structure: { results: [{ _id: "...", ... }] } or could be nested differently
+    let galleryDocId = galleryRes?.results?.[0]?._id;
+    
+    // Try alternative paths if first one didn't work
+    if (!galleryDocId) {
+      galleryDocId = galleryRes?.result?.id || galleryRes?._id || galleryRes?.id;
+    }
+
+    console.log(`Upload: Gallery response:`, JSON.stringify(galleryRes));
+    console.log(`Upload: Extracted docId: ${galleryDocId}`);
 
     // Success! Notify uploader
     await sendMessage(botToken, {
