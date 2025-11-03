@@ -7,6 +7,7 @@ import {
   handleUploadCommand,
   handleModerationCallback,
   handleChatIdCommand,
+  handlePendingCommand,
 } from "./telegram/index.js";
 
 /**
@@ -108,6 +109,15 @@ export async function handleTelegramUpdate(request, env) {
       await handleChatIdCommand(message, env);
     } catch (err) {
       console.error("Telegram: ChatId command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/pending")) {
+    try {
+      await handlePendingCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Pending command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }

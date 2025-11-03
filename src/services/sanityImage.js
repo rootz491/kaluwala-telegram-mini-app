@@ -211,6 +211,53 @@ export async function updateGalleryStatus(docId, newStatus, notes = null, env) {
 }
 
 /**
+ * Get all pending gallery documents with metadata
+ * Returns array of pending image documents
+ */
+export async function getPendingGalleryImages(env) {
+  const projectId = env.SANITY_PROJECT_ID;
+  const dataset = "production";
+  const token = env.SANITY_API_TOKEN;
+
+  if (!projectId || !token) {
+    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_API_TOKEN not configured in env");
+  }
+
+  // GROQ query to fetch all pending gallery docs with relevant fields
+  const query = `*[_type == "gallery" && status == "pending"] | order(_createdAt desc) {
+    _id,
+    _createdAt,
+    firstName,
+    username,
+    telegramId,
+    status,
+    image {
+      asset -> {
+        _id,
+        url
+      }
+    }
+  }`;
+  
+  const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}?query=${encodeURIComponent(query)}`;
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!resp.ok) {
+    console.warn(`Sanity: getPendingGalleryImages query failed ${resp.status}`);
+    throw new Error(`Sanity query failed: ${resp.status}`);
+  }
+
+  const json = await resp.json();
+  return json.result || [];
+}
+
+/**
  * Build Sanity image URL for a gallery document
  * Returns URL string that can be used to display the image
  */
