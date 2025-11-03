@@ -2,6 +2,7 @@ import { parseJson } from "../utils/http.js";
 import {
   handleStartCommand,
   handleSubscribeCommand,
+  handleUnsubscribeCommand,
   handleCallbackQuery,
   handleWebAppData,
   handleUploadCommand,
@@ -101,6 +102,20 @@ export async function handleTelegramUpdate(request, env) {
       await handleSubscribeCommand(message, env);
     } catch (err) {
       console.error("Telegram: Subscribe command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/unsubscribe")) {
+    // Only allow in DM (chat type "private")
+    if (message.chat?.type !== "private") {
+      console.warn(`Security: /unsubscribe command blocked in ${message.chat?.type} chat ${chatId}`);
+      return new Response("ok", { status: 200 });
+    }
+    try {
+      await handleUnsubscribeCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Unsubscribe command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }

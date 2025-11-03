@@ -78,3 +78,32 @@ export async function isSubscribed(chatId, env) {
   // No persistence mechanism configured
   return false;
 }
+
+/**
+ * removeSubscriber - delete subscriber from the database
+ * Returns { persisted: boolean, error?: string }
+ */
+export async function removeSubscriber(chatId, env) {
+  const key = String(chatId);
+
+  // Check if currently subscribed
+  const subscribed = await isSubscribed(key, env);
+  if (!subscribed) {
+    return { persisted: false, error: "not_subscribed" };
+  }
+
+  const d1 = env.DB;
+  if (d1 && typeof d1.prepare === "function") {
+    try {
+      const stmt = d1.prepare("DELETE FROM subscribers WHERE telegram_id = ?");
+      await stmt.bind(key).run();
+      return { persisted: true };
+    } catch (err) {
+      console.warn("Subscribers: D1 delete failed:", err);
+      return { persisted: false, error: "database_error" };
+    }
+  }
+
+  // No persistence mechanism configured
+  return { persisted: false };
+}

@@ -1,5 +1,6 @@
 export { handleStartCommand } from "./start.js";
 export { handleSubscribeCommand } from "./subscribe.js";
+export { handleUnsubscribeCommand } from "./unsubscribe.js";
 export { handleCallbackQuery } from "./callbackQuery.js";
 export { handleWebAppData } from "./webAppData.js";
 export { handleUploadCommand } from "./upload.js";
