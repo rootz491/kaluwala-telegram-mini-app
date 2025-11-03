@@ -1,5 +1,5 @@
 import { sendMessage } from "../../services/telegram/index.js";
-import { uploadImageAsset, createGalleryDocument, countPendingPhotos } from "../../services/sanityImage.js";
+import { uploadImageAsset, createGalleryDocument, countPendingPhotos, buildImageUrl } from "../../services/sanityImage.js";
 
 /**
  * Handle /upload command or photo messages
@@ -156,13 +156,53 @@ async function processPhotoUpload(message, env) {
       env
     );
 
-    // Success!
+    // Extract gallery document ID
+    const galleryDocId = galleryRes?.result?.id || galleryRes?.id;
+
+    // Success! Notify uploader
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: "✅ Image uploaded successfully!\nYour photo has been submitted and is now awaiting review.\nYou’ll be notified once it’s approved and added to the gallery!",
+      text: "✅ Image uploaded successfully!\nYour photo has been submitted and is now awaiting review.\nYou'll be notified once it's approved and added to the gallery!",
     });
 
-    console.log(`Upload: success for chat ${chatId}, assetId: ${assetId}`);
+    // Send to moderation chat if configured
+    if (env.MODERATION_CHAT_ID && galleryDocId) {
+      try {
+        const imageUrl = buildImageUrl(galleryRes?.result, env.SANITY_PROJECT_ID);
+        const userHandle = message?.from?.username ? `@${message.from.username}` : `User ${chatId}`;
+        const userName = message?.from?.first_name || "Unknown";
+
+        const moderationText = `📸 <b>New Submission for Review</b>\n\n👤 From: ${userName} (${userHandle})\n🆔 Doc ID: <code>${galleryDocId}</code>`;
+
+        await sendMessage(botToken, {
+          chat_id: env.MODERATION_CHAT_ID,
+          text: moderationText,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
+                { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
+              ],
+            ],
+          },
+        });
+
+        // Also send the image if URL available
+        if (imageUrl) {
+          await sendMessage(botToken, {
+            chat_id: env.MODERATION_CHAT_ID,
+            photo: imageUrl,
+            caption: `<a href="${imageUrl}">View full image</a>`,
+            parse_mode: "HTML",
+          });
+        }
+      } catch (err) {
+        console.warn("Upload: failed to send to moderation chat:", err);
+      }
+    }
+
+    console.log(`Upload: success for chat ${chatId}, assetId: ${assetId}, docId: ${galleryDocId}`);
   } catch (err) {
     console.error("Upload: processing failed:", err);
     await sendMessage(botToken, {

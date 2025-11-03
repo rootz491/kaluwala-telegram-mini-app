@@ -5,6 +5,7 @@ import {
   handleCallbackQuery,
   handleWebAppData,
   handleUploadCommand,
+  handleModerationCallback,
 } from "./telegram/index.js";
 
 /**
@@ -25,7 +26,14 @@ export async function handleTelegramUpdate(request, env) {
   // Handle callback_query from inline buttons
   if (update.callback_query) {
     try {
-      await handleCallbackQuery(update.callback_query, env);
+      const { data } = update.callback_query;
+      // Route to moderation handler for gallery approve/reject
+      if (data && (data.startsWith("gallery_approve_") || data.startsWith("gallery_reject_"))) {
+        await handleModerationCallback(update.callback_query, env);
+      } else {
+        // Handle other callback queries
+        await handleCallbackQuery(update.callback_query, env);
+      }
     } catch (err) {
       console.error("Telegram: CallbackQuery handler failed:", err);
     }
