@@ -78,6 +78,11 @@ export async function handleTelegramUpdate(request, env) {
 
   // Route to command handlers
   if (text.toLowerCase().startsWith("/start")) {
+    // Only allow in DM (chat type "private")
+    if (message.chat?.type !== "private") {
+      console.warn(`Security: /start command blocked in ${message.chat?.type} chat ${chatId}`);
+      return new Response("ok", { status: 200 });
+    }
     try {
       await handleStartCommand(message, env);
     } catch (err) {
@@ -87,6 +92,11 @@ export async function handleTelegramUpdate(request, env) {
   }
 
   if (text.toLowerCase().startsWith("/subscribe")) {
+    // Only allow in DM (chat type "private")
+    if (message.chat?.type !== "private") {
+      console.warn(`Security: /subscribe command blocked in ${message.chat?.type} chat ${chatId}`);
+      return new Response("ok", { status: 200 });
+    }
     try {
       await handleSubscribeCommand(message, env);
     } catch (err) {
@@ -96,6 +106,11 @@ export async function handleTelegramUpdate(request, env) {
   }
 
   if (text.toLowerCase().startsWith("/upload")) {
+    // Only allow in DM (chat type "private")
+    if (message.chat?.type !== "private") {
+      console.warn(`Security: /upload command blocked in ${message.chat?.type} chat ${chatId}`);
+      return new Response("ok", { status: 200 });
+    }
     try {
       await handleUploadCommand(message, env);
     } catch (err) {
