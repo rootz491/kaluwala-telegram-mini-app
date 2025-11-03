@@ -16,13 +16,9 @@ export async function handleStartCommand(message, env) {
   const telegramPageUrl = `${env.BLOG_URL || "https://kaluwala.in"}/telegram`;
   const homePageUrl = env.BLOG_URL || "https://kaluwala.in";
 
-  let openUrl = telegramPageUrl;
   let subscribed = false;
   try {
     subscribed = await isSubscribed(chatId, env);
-    if (subscribed) {
-      openUrl = homePageUrl;
-    }
   } catch (err) {
     console.warn(
       "Start: isSubscribed check failed, defaulting to telegramPageUrl",
@@ -35,8 +31,8 @@ export async function handleStartCommand(message, env) {
     text: "Welcome! Explore Kaluwala insights inside the Telegram app.",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "Open in Telegram", web_app: { url: openUrl } }],
-        [{ text: "Open in Web", url: openUrl }],
+        [{ text: "Open in Telegram", web_app: { url: homePageUrl } }],
+        [{ text: "Open in Web", url: homePageUrl }],
         ...(subscribed ? [] : [[{ text: "Subscribe", web_app: { url: telegramPageUrl } }]]),
       ],
     },
