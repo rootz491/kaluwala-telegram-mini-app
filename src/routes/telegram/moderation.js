@@ -4,14 +4,25 @@ import { updateGalleryStatus, getGalleryDocument } from "../../services/sanityIm
 /**
  * Handle moderation callback queries from approve/reject buttons
  * Callback data format: "gallery_approve_<docId>" or "gallery_reject_<docId>"
+ * RESTRICTED: Only works in MODERATION_CHAT_ID
  */
 export async function handleModerationCallback(callbackQuery, env) {
   const { id: callbackId, data, from, message } = callbackQuery;
   const botToken = env.BOT_TOKEN;
   const moderatorId = from?.id;
+  const moderationChatId = env.MODERATION_CHAT_ID;
 
   if (!botToken) {
     console.error("Moderation: BOT_TOKEN not configured");
+    return;
+  }
+
+  // Security check: only allow in moderation chat
+  if (moderationChatId && message?.chat?.id !== Number(moderationChatId)) {
+    console.warn(
+      `Security: Unauthorized moderation attempt from chat ${message?.chat?.id}. Moderation restricted to ${moderationChatId}`
+    );
+    await answerCallbackQuery(botToken, callbackId, "❌ Unauthorized", true);
     return;
   }
 
