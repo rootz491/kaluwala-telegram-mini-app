@@ -3,8 +3,6 @@ import {
   uploadImageAsset,
   createGalleryDocument,
   countPendingPhotos,
-  buildImageUrl,
-  updateGalleryStatus,
 } from "../../services/sanityImage.js";
 import { isSubscribed } from "../../services/subscribers/index.js";
 import { messages } from "../../services/messages.js";
