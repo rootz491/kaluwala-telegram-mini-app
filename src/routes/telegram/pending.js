@@ -1,4 +1,4 @@
-import { sendMessage } from "../../services/telegram/index.js";
+import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
 import { getPendingGalleryImages } from "../../services/sanityImage.js";
 
 /**
@@ -73,7 +73,7 @@ export async function handlePendingCommand(message, env) {
       };
 
       try {
-        await sendMessage(botToken, {
+        await sendPhoto(botToken, {
           chat_id: chatId,
           photo: imageUrl,
           caption: imageCaption,
