@@ -27,11 +27,17 @@ export async function handleModerationCallback(callbackQuery, env) {
   }
 
   // Parse callback data
-  const [action, ...docIdParts] = data.split("_");
-  const docId = docIdParts.join("_"); // rejoin in case docId contains underscores
-
-  if (action !== "gallery_approve" && action !== "gallery_reject") {
-    console.warn("Moderation: unknown callback action:", action);
+  // Format: "gallery_approve_<docId>" or "gallery_reject_<docId>"
+  let action, docId;
+  
+  if (data.startsWith("gallery_approve_")) {
+    action = "gallery_approve";
+    docId = data.substring("gallery_approve_".length);
+  } else if (data.startsWith("gallery_reject_")) {
+    action = "gallery_reject";
+    docId = data.substring("gallery_reject_".length);
+  } else {
+    console.warn("Moderation: unknown callback action:", data);
     await answerCallbackQuery(botToken, callbackId, "❌ Unknown action", true);
     return;
   }
