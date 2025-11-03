@@ -6,6 +6,7 @@ import {
   handleWebAppData,
   handleUploadCommand,
   handleModerationCallback,
+  handleChatIdCommand,
 } from "./telegram/index.js";
 
 /**
@@ -98,6 +99,15 @@ export async function handleTelegramUpdate(request, env) {
       await handleUploadCommand(message, env);
     } catch (err) {
       console.error("Telegram: Upload command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/chatid")) {
+    try {
+      await handleChatIdCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: ChatId command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }

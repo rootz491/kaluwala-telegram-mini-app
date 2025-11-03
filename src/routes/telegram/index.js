@@ -4,3 +4,4 @@ export { handleCallbackQuery } from "./callbackQuery.js";
 export { handleWebAppData } from "./webAppData.js";
 export { handleUploadCommand } from "./upload.js";
 export { handleModerationCallback } from "./moderation.js";
+export { handleChatIdCommand } from "./chatid.js";
