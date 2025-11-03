@@ -1,4 +1,4 @@
-import { sendMessage } from "../../services/telegram/index.js";
+import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
 import { uploadImageAsset, createGalleryDocument, countPendingPhotos, buildImageUrl } from "../../services/sanityImage.js";
 
 /**
@@ -172,29 +172,39 @@ async function processPhotoUpload(message, env) {
         const userHandle = message?.from?.username ? `@${message.from.username}` : `User ${chatId}`;
         const userName = message?.from?.first_name || "Unknown";
 
-        const moderationText = `📸 <b>New Submission for Review</b>\n\n👤 From: ${userName} (${userHandle})\n🆔 Doc ID: <code>${galleryDocId}</code>`;
+        // Create caption with submission details
+        const moderationCaption = `📸 <b>New Submission for Review</b>\n\n👤 From: ${userName} (${userHandle})\n🆔 <code>${galleryDocId}</code>`;
 
-        await sendMessage(botToken, {
-          chat_id: env.MODERATION_CHAT_ID,
-          text: moderationText,
-          parse_mode: "HTML",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
-                { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
-              ],
-            ],
-          },
-        });
-
-        // Also send the image if URL available
+        // Send photo with buttons and caption in a single message
         if (imageUrl) {
-          await sendMessage(botToken, {
+          await sendPhoto(botToken, {
             chat_id: env.MODERATION_CHAT_ID,
             photo: imageUrl,
-            caption: `<a href="${imageUrl}">View full image</a>`,
+            caption: moderationCaption,
             parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
+                  { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
+                ],
+              ],
+            },
+          });
+        } else {
+          // Fallback: send text message with buttons if image URL not available
+          await sendMessage(botToken, {
+            chat_id: env.MODERATION_CHAT_ID,
+            text: moderationCaption,
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
+                  { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
+                ],
+              ],
+            },
           });
         }
       } catch (err) {
