@@ -1,11 +1,19 @@
-import { sendMessage, sendPhoto, answerCallbackQuery } from "../../services/telegram/index.js";
-import { updateGalleryStatus, getGalleryDocument, deleteGalleryDocument } from "../../services/sanityImage.js";
+import {
+  sendMessage,
+  sendPhoto,
+  answerCallbackQuery,
+} from "../../services/telegram/index.js";
+import {
+  updateGalleryStatus,
+  getGalleryDocument,
+  deleteGalleryDocument,
+} from "../../services/sanityImage.js";
 import { messages } from "../../services/messages.js";
 
 /**
  * Handle moderation callback queries from approve/reject buttons
  * Callback data format: "gallery_approve_<docId>" or "gallery_reject_<docId>"
- * RESTRICTED: Only works in MODERATION_CHAT_ID
+ * RESTRICTED: Only works in MODERATION_CHAT_ID or for admins (ADMIN_IDS env var)
  */
 export async function handleModerationCallback(callbackQuery, env) {
   const { id: callbackId, data, from, message } = callbackQuery;
@@ -18,19 +26,35 @@ export async function handleModerationCallback(callbackQuery, env) {
     return;
   }
 
-  // Security check: only allow in moderation chat
-  if (moderationChatId && message?.chat?.id !== Number(moderationChatId)) {
+  const adminIds = (env.ADMIN_IDS || "")
+    .split(",")
+    .map((id) => String(id).trim())
+    .filter((id) => id);
+
+  const isAdmin = adminIds.includes(String(moderatorId));
+
+  // Security check: only allow in moderation chat or for admins
+  if (
+    moderationChatId &&
+    message?.chat?.id !== Number(moderationChatId) &&
+    !isAdmin
+  ) {
     console.warn(
-      `Security: Unauthorized moderation attempt from chat ${message?.chat?.id}. Moderation restricted to ${moderationChatId}`
+      `Security: Unauthorized moderation attempt from chat ${message?.chat?.id}. Moderation restricted to ${moderationChatId} or admins`
     );
-    await answerCallbackQuery(botToken, callbackId, messages.moderation.unauthorized, true);
+    await answerCallbackQuery(
+      botToken,
+      callbackId,
+      messages.moderation.unauthorized,
+      true
+    );
     return;
   }
 
   // Parse callback data
   // Format: "gallery_approve_<docId>" or "gallery_reject_<docId>"
   let action, docId;
-  
+
   if (data.startsWith("gallery_approve_")) {
     action = "gallery_approve";
     docId = data.substring("gallery_approve_".length);
@@ -39,7 +63,12 @@ export async function handleModerationCallback(callbackQuery, env) {
     docId = data.substring("gallery_reject_".length);
   } else {
     console.warn("Moderation: unknown callback action:", data);
-    await answerCallbackQuery(botToken, callbackId, messages.moderation.unauthorized, true);
+    await answerCallbackQuery(
+      botToken,
+      callbackId,
+      messages.moderation.unauthorized,
+      true
+    );
     return;
   }
 
@@ -49,7 +78,12 @@ export async function handleModerationCallback(callbackQuery, env) {
     // Check if the document has already been moderated (safety check against duplicate actions)
     const galleryDoc = await getGalleryDocument(docId, env);
     if (!galleryDoc) {
-      await answerCallbackQuery(botToken, callbackId, messages.moderation.imageNotFound, true);
+      await answerCallbackQuery(
+        botToken,
+        callbackId,
+        messages.moderation.imageNotFound,
+        true
+      );
       return;
     }
 
@@ -70,43 +104,62 @@ export async function handleModerationCallback(callbackQuery, env) {
 
     // Answer the callback query with success
     const emoji = newStatus === "approved" ? "✅" : "❌";
-    await answerCallbackQuery(botToken, callbackId, `${emoji} Image ${newStatus}!`);
+    await answerCallbackQuery(
+      botToken,
+      callbackId,
+      `${emoji} Image ${newStatus}!`
+    );
 
     // Try to delete the message from moderation chat to clean up
     if (message?.message_id && message?.chat?.id) {
       try {
         // First try to delete the message entirely
-        await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/deleteMessage`, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            chat_id: message.chat.id,
-            message_id: message.message_id,
-          }),
-        });
-        console.log(`Moderation: ${messages.moderation.deletedMessage}`);
-      } catch (err) {
-        // If deletion fails, fall back to removing buttons by editing the message
-        console.warn(`Moderation: ${messages.moderation.failedDelete}:`, err);
-        try {
-          await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/editMessageText`, {
+        await fetch(
+          `https://api.telegram.org/bot${encodeURIComponent(
+            botToken
+          )}/deleteMessage`,
+          {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
               chat_id: message.chat.id,
               message_id: message.message_id,
-              text: `${emoji} This image has been <b>${newStatus}</b>.\n\n<i>Moderated by user ${moderatorId}</i>`,
-              parse_mode: "HTML",
-              reply_markup: { inline_keyboard: [] }, // Remove buttons
             }),
-          });
+          }
+        );
+        console.log(`Moderation: ${messages.moderation.deletedMessage}`);
+      } catch (err) {
+        // If deletion fails, fall back to removing buttons by editing the message
+        console.warn(`Moderation: ${messages.moderation.failedDelete}:`, err);
+        try {
+          await fetch(
+            `https://api.telegram.org/bot${encodeURIComponent(
+              botToken
+            )}/editMessageText`,
+            {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                chat_id: message.chat.id,
+                message_id: message.message_id,
+                text: `${emoji} This image has been <b>${newStatus}</b>.\n\n<i>Moderated by user ${moderatorId}</i>`,
+                parse_mode: "HTML",
+                reply_markup: { inline_keyboard: [] }, // Remove buttons
+              }),
+            }
+          );
         } catch (editErr) {
-          console.warn(`Moderation: ${messages.moderation.failedEdit}:`, editErr);
+          console.warn(
+            `Moderation: ${messages.moderation.failedEdit}:`,
+            editErr
+          );
         }
       }
     }
 
-    console.log(`Moderation: ${newStatus} gallery document ${docId} by moderator ${moderatorId}`);
+    console.log(
+      `Moderation: ${newStatus} gallery document ${docId} by moderator ${moderatorId}`
+    );
 
     // Notify the original uploader
     try {
@@ -115,8 +168,9 @@ export async function handleModerationCallback(callbackQuery, env) {
         if (newStatus === "approved") {
           // Approval notification
           const imageUrl = galleryDoc.image?.asset?.url;
-          const approvalCaption = messages.moderation_notification.approvalCaption;
-          
+          const approvalCaption =
+            messages.moderation_notification.approvalCaption;
+
           if (imageUrl) {
             await sendPhoto(botToken, {
               chat_id: galleryDoc.telegramId,
@@ -135,7 +189,8 @@ export async function handleModerationCallback(callbackQuery, env) {
         } else {
           // Rejection notification (with image and contact info)
           const imageUrl = galleryDoc.image?.asset?.url;
-          const rejectionCaption = messages.moderation_notification.rejectionCaption;
+          const rejectionCaption =
+            messages.moderation_notification.rejectionCaption;
 
           if (imageUrl) {
             await sendPhoto(botToken, {
@@ -156,9 +211,14 @@ export async function handleModerationCallback(callbackQuery, env) {
           // After sending rejection message, delete the document and asset from Sanity
           try {
             await deleteGalleryDocument(docId, env);
-            console.log(`Moderation: Deleted rejected gallery document ${docId} and its asset`);
+            console.log(
+              `Moderation: Deleted rejected gallery document ${docId} and its asset`
+            );
           } catch (deleteErr) {
-            console.warn(`Moderation: failed to delete rejected document ${docId}:`, deleteErr);
+            console.warn(
+              `Moderation: failed to delete rejected document ${docId}:`,
+              deleteErr
+            );
           }
         }
       }
@@ -167,6 +227,11 @@ export async function handleModerationCallback(callbackQuery, env) {
     }
   } catch (err) {
     console.error("Moderation: update failed:", err);
-    await answerCallbackQuery(botToken, callbackId, `❌ Error: ${String(err).substring(0, 50)}`, true);
+    await answerCallbackQuery(
+      botToken,
+      callbackId,
+      `❌ Error: ${String(err).substring(0, 50)}`,
+      true
+    );
   }
 }

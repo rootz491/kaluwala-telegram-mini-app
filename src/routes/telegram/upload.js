@@ -1,5 +1,11 @@
 import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
-import { uploadImageAsset, createGalleryDocument, countPendingPhotos, buildImageUrl } from "../../services/sanityImage.js";
+import {
+  uploadImageAsset,
+  createGalleryDocument,
+  countPendingPhotos,
+  buildImageUrl,
+  updateGalleryStatus,
+} from "../../services/sanityImage.js";
 import { isSubscribed } from "../../services/subscribers/index.js";
 import { messages } from "../../services/messages.js";
 
@@ -94,11 +100,15 @@ async function processPhotoUpload(message, env) {
   await sendMessage(botToken, {
     chat_id: chatId,
     text: messages.upload.status,
-  }).catch((err) => console.warn("Upload: failed to send status message:", err));
+  }).catch((err) =>
+    console.warn("Upload: failed to send status message:", err)
+  );
 
   try {
     // Step 1: Get the file path from Telegram
-    const fileUrl = `https://api.telegram.org/bot${encodeURIComponent(botToken)}/getFile`;
+    const fileUrl = `https://api.telegram.org/bot${encodeURIComponent(
+      botToken
+    )}/getFile`;
     const fileResp = await fetch(fileUrl, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -143,7 +153,9 @@ async function processPhotoUpload(message, env) {
     }
 
     // Step 2: Download the file from Telegram CDN
-    const downloadUrl = `https://api.telegram.org/file/bot${encodeURIComponent(botToken)}/${filePath}`;
+    const downloadUrl = `https://api.telegram.org/file/bot${encodeURIComponent(
+      botToken
+    )}/${filePath}`;
     const downloadResp = await fetch(downloadUrl);
 
     if (!downloadResp.ok) {
@@ -154,7 +166,12 @@ async function processPhotoUpload(message, env) {
     const filename = `telegram-${Date.now()}.jpg`;
 
     // Step 3: Upload to Sanity
-    const { assetId, raw } = await uploadImageAsset(fileBlob, filename, fileBlob.type || "image/jpeg", env);
+    const { assetId, raw } = await uploadImageAsset(
+      fileBlob,
+      filename,
+      fileBlob.type || "image/jpeg",
+      env
+    );
 
     if (!assetId) {
       console.warn("Upload: no asset id returned from Sanity", raw);
@@ -166,6 +183,14 @@ async function processPhotoUpload(message, env) {
     }
 
     // Step 4: Create gallery document
+    const adminIds = (env.ADMIN_IDS || "")
+      .split(",")
+      .map((id) => String(id).trim())
+      .filter((id) => id);
+
+    const isAdmin = adminIds.includes(String(chatId));
+    const initialStatus = isAdmin ? "approved" : "pending";
+
     const galleryRes = await createGalleryDocument(
       {
         assetRef: assetId,
@@ -174,7 +199,7 @@ async function processPhotoUpload(message, env) {
           first_name: message?.from?.first_name,
           username: message?.from?.username,
         },
-        status: "pending",
+        status: initialStatus,
       },
       env
     );
@@ -182,75 +207,110 @@ async function processPhotoUpload(message, env) {
     // Extract gallery document ID from Sanity mutation response
     // Response structure: { results: [{ _id: "...", ... }] } or could be nested differently
     let galleryDocId = galleryRes?.results?.[0]?._id;
-    
+
     // Try alternative paths if first one didn't work
     if (!galleryDocId) {
-      galleryDocId = galleryRes?.result?.id || galleryRes?._id || galleryRes?.id;
+      galleryDocId =
+        galleryRes?.result?.id || galleryRes?._id || galleryRes?.id;
     }
 
     console.log(`Upload: Gallery response:`, JSON.stringify(galleryRes));
     console.log(`Upload: Extracted docId: ${galleryDocId}`);
 
-    // Success! Notify uploader
-    await sendMessage(botToken, {
-      chat_id: chatId,
-      text: messages.upload.success,
-    });
+    if (isAdmin) {
+      // Admin upload: directly approved, send success message
+      await sendMessage(botToken, {
+        chat_id: chatId,
+        text: messages.upload.successAdmin,
+        f,
+      });
+      console.log(
+        `Upload: Admin ${chatId} image auto-approved, docId: ${galleryDocId}`
+      );
+    } else {
+      // Regular user upload: send to moderation
+      await sendMessage(botToken, {
+        chat_id: chatId,
+        text: messages.upload.successModeration,
+      });
 
-    // Send to moderation chat if configured
-    if (env.MODERATION_CHAT_ID && galleryDocId) {
-      try {
-        // Build image URL from asset ID
-        const imageUrl = `https://cdn.sanity.io/images/${env.SANITY_PROJECT_ID}/production/${assetId}?auto=format&w=600`;
-        const userHandle = message?.from?.username ? `@${message.from.username}` : `User ${chatId}`;
-        const userName = message?.from?.first_name || "Unknown";
+      // Send to moderation chat if configured
+      if (env.MODERATION_CHAT_ID && galleryDocId) {
+        try {
+          // Build image URL from asset ID
+          const imageUrl = `https://cdn.sanity.io/images/${env.SANITY_PROJECT_ID}/production/${assetId}?auto=format&w=600`;
+          const userHandle = message?.from?.username
+            ? `@${message.from.username}`
+            : `User ${chatId}`;
+          const userName = message?.from?.first_name || "Unknown";
 
-        // Create caption with submission details
-        const moderationCaption = messages.moderation_caption.submission(userName, userHandle, galleryDocId);
+          // Create caption with submission details
+          const moderationCaption = messages.moderation_caption.submission(
+            userName,
+            userHandle,
+            galleryDocId
+          );
 
-        // Send photo with buttons and caption in a single message
-        if (imageUrl) {
-          await sendPhoto(botToken, {
-            chat_id: env.MODERATION_CHAT_ID,
-            photo: imageUrl,
-            caption: moderationCaption,
-            parse_mode: "HTML",
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: messages.buttons.approve, callback_data: `gallery_approve_${galleryDocId}` },
-                  { text: messages.buttons.reject, callback_data: `gallery_reject_${galleryDocId}` },
+          // Send photo with buttons and caption in a single message
+          if (imageUrl) {
+            await sendPhoto(botToken, {
+              chat_id: env.MODERATION_CHAT_ID,
+              photo: imageUrl,
+              caption: moderationCaption,
+              parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: messages.buttons.approve,
+                      callback_data: `gallery_approve_${galleryDocId}`,
+                    },
+                    {
+                      text: messages.buttons.reject,
+                      callback_data: `gallery_reject_${galleryDocId}`,
+                    },
+                  ],
                 ],
-              ],
-            },
-          });
-        } else {
-          // Fallback: send text message with buttons if image URL not available
-          await sendMessage(botToken, {
-            chat_id: env.MODERATION_CHAT_ID,
-            text: moderationCaption,
-            parse_mode: "HTML",
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: messages.buttons.approve, callback_data: `gallery_approve_${galleryDocId}` },
-                  { text: messages.buttons.reject, callback_data: `gallery_reject_${galleryDocId}` },
+              },
+            });
+          } else {
+            // Fallback: send text message with buttons if image URL not available
+            await sendMessage(botToken, {
+              chat_id: env.MODERATION_CHAT_ID,
+              text: moderationCaption,
+              parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    {
+                      text: messages.buttons.approve,
+                      callback_data: `gallery_approve_${galleryDocId}`,
+                    },
+                    {
+                      text: messages.buttons.reject,
+                      callback_data: `gallery_reject_${galleryDocId}`,
+                    },
+                  ],
                 ],
-              ],
-            },
-          });
+              },
+            });
+          }
+        } catch (err) {
+          console.warn("Upload: failed to send to moderation chat:", err);
         }
-      } catch (err) {
-        console.warn("Upload: failed to send to moderation chat:", err);
       }
     }
 
-    console.log(`Upload: success for chat ${chatId}, assetId: ${assetId}, docId: ${galleryDocId}`);
+    console.log(
+      `Upload: success for chat ${chatId}, assetId: ${assetId}, docId: ${galleryDocId}`
+    );
   } catch (err) {
     console.error("Upload: processing failed:", err);
     await sendMessage(botToken, {
       chat_id: chatId,
       text: messages.upload.errorGeneric(String(err).substring(0, 100)),
-    }).catch((sendErr) => console.warn("Upload: failed to send error message:", sendErr));
+    }).catch((sendErr) =>
+      console.warn("Upload: failed to send error message:", sendErr)
+    );
   }
 }
