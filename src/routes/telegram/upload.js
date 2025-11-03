@@ -156,8 +156,8 @@ async function processPhotoUpload(message, env) {
       env
     );
 
-    // Extract gallery document ID
-    const galleryDocId = galleryRes?.result?.id || galleryRes?.id;
+    // Extract gallery document ID from Sanity mutation response
+    const galleryDocId = galleryRes?.results?.[0]?._id;
 
     // Success! Notify uploader
     await sendMessage(botToken, {
@@ -168,7 +168,8 @@ async function processPhotoUpload(message, env) {
     // Send to moderation chat if configured
     if (env.MODERATION_CHAT_ID && galleryDocId) {
       try {
-        const imageUrl = buildImageUrl(galleryRes?.result, env.SANITY_PROJECT_ID);
+        // Build image URL from asset ID
+        const imageUrl = `https://cdn.sanity.io/images/${env.SANITY_PROJECT_ID}/production/${assetId}?auto=format&w=600`;
         const userHandle = message?.from?.username ? `@${message.from.username}` : `User ${chatId}`;
         const userName = message?.from?.first_name || "Unknown";
 
