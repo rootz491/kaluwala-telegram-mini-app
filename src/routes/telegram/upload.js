@@ -1,15 +1,37 @@
 import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
 import { uploadImageAsset, createGalleryDocument, countPendingPhotos, buildImageUrl } from "../../services/sanityImage.js";
+import { isSubscribed } from "../../services/subscribers/index.js";
 
 /**
  * Handle /upload command or photo messages
  * When user sends /upload, prompt them to send a photo.
  * When a photo is received (in reply to the prompt or standalone), upload to Sanity.
+ * RESTRICTED: User must be subscribed to upload
  */
 export async function handleUploadCommand(message, env) {
   const chatId = message.chat?.id;
   if (!chatId) {
     console.warn("Upload: No chat ID found in message");
+    return;
+  }
+
+  // Check if user is subscribed
+  try {
+    const subscribed = await isSubscribed(chatId, env);
+    if (!subscribed) {
+      await sendMessage(env.BOT_TOKEN, {
+        chat_id: chatId,
+        text: "🔒 You need to be subscribed to upload images to the gallery.\n\nPlease use /subscribe to get started!",
+      });
+      console.warn(`Upload: Blocked non-subscribed user ${chatId}`);
+      return;
+    }
+  } catch (err) {
+    console.error("Upload: Failed to check subscription status:", err);
+    await sendMessage(env.BOT_TOKEN, {
+      chat_id: chatId,
+      text: "❌ Could not verify your subscription status. Please try again later.",
+    }).catch(() => {});
     return;
   }
 
