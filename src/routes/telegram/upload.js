@@ -222,7 +222,6 @@ async function processPhotoUpload(message, env) {
       await sendMessage(botToken, {
         chat_id: chatId,
         text: messages.upload.successAdmin,
-        f,
       });
       console.log(
         `Upload: Admin ${chatId} image auto-approved, docId: ${galleryDocId}`
