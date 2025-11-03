@@ -45,6 +45,25 @@ export async function handleModerationCallback(callbackQuery, env) {
   const newStatus = action === "gallery_approve" ? "approved" : "rejected";
 
   try {
+    // Check if the document has already been moderated (safety check against duplicate actions)
+    const galleryDoc = await getGalleryDocument(docId, env);
+    if (!galleryDoc) {
+      await answerCallbackQuery(botToken, callbackId, "❌ Image not found", true);
+      return;
+    }
+
+    // Prevent duplicate actions: if already moderated, reject the action
+    if (galleryDoc.status !== "pending") {
+      const currentStatus = galleryDoc.status || "unknown";
+      await answerCallbackQuery(
+        botToken,
+        callbackId,
+        `⚠️ Already ${currentStatus}. Cannot change decision.`,
+        true
+      );
+      return;
+    }
+
     // Update the gallery document status in Sanity
     await updateGalleryStatus(docId, newStatus, null, env);
 
@@ -52,24 +71,37 @@ export async function handleModerationCallback(callbackQuery, env) {
     const emoji = newStatus === "approved" ? "✅" : "❌";
     await answerCallbackQuery(botToken, callbackId, `${emoji} Image ${newStatus}!`);
 
-    // Update the message to show it's been moderated
-    const messageText = `${emoji} This image has been <b>${newStatus}</b>.\n\n<i>Moderated by user ${moderatorId}</i>`;
-
+    // Try to delete the message from moderation chat to clean up
     if (message?.message_id && message?.chat?.id) {
       try {
-        await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/editMessageText`, {
+        // First try to delete the message entirely
+        await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/deleteMessage`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             chat_id: message.chat.id,
             message_id: message.message_id,
-            text: messageText,
-            parse_mode: "HTML",
-            reply_markup: { inline_keyboard: [] }, // Remove buttons
           }),
         });
+        console.log(`Moderation: Deleted moderation message ${message.message_id} from chat ${message.chat.id}`);
       } catch (err) {
-        console.warn("Moderation: failed to edit message:", err);
+        // If deletion fails, fall back to removing buttons by editing the message
+        console.warn("Moderation: failed to delete message, attempting to remove buttons:", err);
+        try {
+          await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/editMessageText`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              chat_id: message.chat.id,
+              message_id: message.message_id,
+              text: `${emoji} This image has been <b>${newStatus}</b>.\n\n<i>Moderated by user ${moderatorId}</i>`,
+              parse_mode: "HTML",
+              reply_markup: { inline_keyboard: [] }, // Remove buttons
+            }),
+          });
+        } catch (editErr) {
+          console.warn("Moderation: failed to edit message:", editErr);
+        }
       }
     }
 
