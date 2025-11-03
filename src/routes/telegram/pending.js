@@ -1,5 +1,6 @@
 import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
 import { getPendingGalleryImages } from "../../services/sanityImage.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle /pending command
@@ -31,13 +32,13 @@ export async function handlePendingCommand(message, env) {
     if (!pendingImages || pendingImages.length === 0) {
       await sendMessage(botToken, {
         chat_id: chatId,
-        text: "✅ No pending images at the moment. Gallery is all caught up!",
+        text: messages.pending.noImages,
       });
       return;
     }
 
     // Send summary/meta info first
-    const summaryText = `📋 <b>Pending Gallery Submissions</b>\n\nTotal: <b>${pendingImages.length}</b> pending image(s) awaiting review`;
+    const summaryText = messages.pending.summary(pendingImages.length);
 
     await sendMessage(botToken, {
       chat_id: chatId,
@@ -61,13 +62,13 @@ export async function handlePendingCommand(message, env) {
         inline_keyboard: [
           [
             {
-              text: "🌐 Open in Browser",
+              text: messages.buttons.openBrowser,
               url: imageUrl || "#",
             },
           ],
           [
-            { text: "✅ Approve", callback_data: `gallery_approve_${docId}` },
-            { text: "❌ Reject", callback_data: `gallery_reject_${docId}` },
+            { text: messages.buttons.approve, callback_data: `gallery_approve_${docId}` },
+            { text: messages.buttons.reject, callback_data: `gallery_reject_${docId}` },
           ],
         ],
       };
@@ -90,7 +91,7 @@ export async function handlePendingCommand(message, env) {
     console.error("Pending: failed to fetch pending images:", err);
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: `❌ Error fetching pending images: ${String(err).substring(0, 100)}`,
+      text: messages.pending.errorFetch(String(err).substring(0, 100)),
     }).catch((sendErr) => console.warn("Pending: failed to send error:", sendErr));
   }
 }

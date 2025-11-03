@@ -1,6 +1,7 @@
 import { sendMessage, sendPhoto } from "../../services/telegram/index.js";
 import { uploadImageAsset, createGalleryDocument, countPendingPhotos, buildImageUrl } from "../../services/sanityImage.js";
 import { isSubscribed } from "../../services/subscribers/index.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle /upload command or photo messages
@@ -21,7 +22,7 @@ export async function handleUploadCommand(message, env) {
     if (!subscribed) {
       await sendMessage(env.BOT_TOKEN, {
         chat_id: chatId,
-        text: "🔒 You need to be subscribed to upload images to the gallery.\n\nPlease use /subscribe to get started!",
+        text: messages.upload.notSubscribed,
       });
       console.warn(`Upload: Blocked non-subscribed user ${chatId}`);
       return;
@@ -30,7 +31,7 @@ export async function handleUploadCommand(message, env) {
     console.error("Upload: Failed to check subscription status:", err);
     await sendMessage(env.BOT_TOKEN, {
       chat_id: chatId,
-      text: "❌ Could not verify your subscription status. Please try again later.",
+      text: messages.upload.configError,
     }).catch(() => {});
     return;
   }
@@ -44,7 +45,7 @@ export async function handleUploadCommand(message, env) {
   // Otherwise, prompt user to send a photo
   const payload = {
     chat_id: chatId,
-    text: "📷 Upload your best shot to feature in our community gallery!\n(Each submission goes through a quick moderation process before approval.)",
+    text: messages.upload.prompt,
   };
 
   try {
@@ -84,7 +85,7 @@ async function processPhotoUpload(message, env) {
     console.warn("Upload: No file_id in photo");
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: "❌ Could not extract file info from photo.",
+      text: messages.upload.fileNotFound,
     });
     return;
   }
@@ -92,7 +93,7 @@ async function processPhotoUpload(message, env) {
   // Send "uploading..." status
   await sendMessage(botToken, {
     chat_id: chatId,
-    text: "⏳ Uploading to gallery...",
+    text: messages.upload.status,
   }).catch((err) => console.warn("Upload: failed to send status message:", err));
 
   try {
@@ -121,7 +122,7 @@ async function processPhotoUpload(message, env) {
     if (fileSize > maxSizeBytes) {
       await sendMessage(botToken, {
         chat_id: chatId,
-        text: `❌ File too large (${(fileSize / 1024 / 1024).toFixed(1)}MB). Max 2MB.`,
+        text: messages.upload.fileTooBig((fileSize / 1024 / 1024).toFixed(1)),
       });
       return;
     }
@@ -132,7 +133,7 @@ async function processPhotoUpload(message, env) {
       if (pendingCount >= 5) {
         await sendMessage(botToken, {
           chat_id: chatId,
-          text: `⏸️ You currently have ${pendingCount} photos awaiting review.\nPlease wait until some are approved before uploading new ones.\nYou can have up to 5 pending photos at a time.`,
+          text: messages.upload.pendingLimit(pendingCount),
         });
         return;
       }
@@ -159,7 +160,7 @@ async function processPhotoUpload(message, env) {
       console.warn("Upload: no asset id returned from Sanity", raw);
       await sendMessage(botToken, {
         chat_id: chatId,
-        text: "❌ Upload to gallery failed. Please try again.",
+        text: messages.upload.failedUpload,
       });
       return;
     }
@@ -193,7 +194,7 @@ async function processPhotoUpload(message, env) {
     // Success! Notify uploader
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: "✅ Image uploaded successfully!\nYour photo has been submitted and is now awaiting review.\nYou'll be notified once it's approved and added to the gallery!",
+      text: messages.upload.success,
     });
 
     // Send to moderation chat if configured
@@ -205,7 +206,7 @@ async function processPhotoUpload(message, env) {
         const userName = message?.from?.first_name || "Unknown";
 
         // Create caption with submission details
-        const moderationCaption = `📸 <b>New Submission for Review</b>\n\n👤 From: ${userName} (${userHandle})\n🆔 <code>${galleryDocId}</code>`;
+        const moderationCaption = messages.moderation_caption.submission(userName, userHandle, galleryDocId);
 
         // Send photo with buttons and caption in a single message
         if (imageUrl) {
@@ -217,8 +218,8 @@ async function processPhotoUpload(message, env) {
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
-                  { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
+                  { text: messages.buttons.approve, callback_data: `gallery_approve_${galleryDocId}` },
+                  { text: messages.buttons.reject, callback_data: `gallery_reject_${galleryDocId}` },
                 ],
               ],
             },
@@ -232,8 +233,8 @@ async function processPhotoUpload(message, env) {
             reply_markup: {
               inline_keyboard: [
                 [
-                  { text: "✅ Approve", callback_data: `gallery_approve_${galleryDocId}` },
-                  { text: "❌ Reject", callback_data: `gallery_reject_${galleryDocId}` },
+                  { text: messages.buttons.approve, callback_data: `gallery_approve_${galleryDocId}` },
+                  { text: messages.buttons.reject, callback_data: `gallery_reject_${galleryDocId}` },
                 ],
               ],
             },
@@ -249,7 +250,7 @@ async function processPhotoUpload(message, env) {
     console.error("Upload: processing failed:", err);
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: `❌ Error uploading image: ${String(err).substring(0, 100)}`,
+      text: messages.upload.errorGeneric(String(err).substring(0, 100)),
     }).catch((sendErr) => console.warn("Upload: failed to send error message:", sendErr));
   }
 }

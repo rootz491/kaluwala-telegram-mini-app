@@ -1,5 +1,6 @@
 import { sendMessage } from "../../services/telegram/index.js";
 import { addSubscriber } from "../../services/subscribers/index.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle /subscribe command
@@ -24,17 +25,13 @@ export async function handleSubscribeCommand(message, env) {
 
     let reply;
     if (result.error === "already_subscribed") {
-      reply =
-        "You're already subscribed! 😊 Sit back and relax, we'll notify you when new content drops.";
+      reply = messages.subscribe.already;
     } else if (result.error === "invalid_user") {
-      reply =
-        "Sorry, we couldn't verify your Telegram account. Please try again later.";
+      reply = messages.subscribe.error;
     } else if (result.persisted) {
-      reply =
-        "You're subscribed to blog updates! We'll notify you when a new post is published.";
+      reply = messages.subscribe.success;
     } else {
-      reply =
-        "You're subscribed (ephemeral). To persist subscriptions across deploys, configure a Cloudflare KV namespace or D1 database binding.";
+      reply = messages.subscribe.ephemeral;
     }
 
     await sendMessage(env.BOT_TOKEN, { chat_id: chatId, text: reply });

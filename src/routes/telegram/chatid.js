@@ -1,4 +1,5 @@
 import { sendMessage } from "../../services/telegram/index.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle /chatid command
@@ -17,7 +18,7 @@ export async function handleChatIdCommand(message, env) {
 
   const payload = {
     chat_id: chatId,
-    text: `ℹ️ <b>Chat Information</b>\n\n🆔 <b>Chat ID:</b> <code>${chatId}</code>\n📝 <b>Chat Title:</b> ${chatTitle}\n📌 <b>Chat Type:</b> ${chatType}`,
+    text: messages.chatid.format(chatId, chatTitle, chatType),
     parse_mode: "HTML",
   };
 

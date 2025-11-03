@@ -1,5 +1,6 @@
 import { sendMessage } from "../../services/telegram/index.js";
 import { removeSubscriber } from "../../services/subscribers/index.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle /unsubscribe command
@@ -25,12 +26,11 @@ export async function handleUnsubscribeCommand(message, env) {
 
     let reply;
     if (result.error === "not_subscribed") {
-      reply = "You're not currently subscribed to our blog updates. 😊";
+      reply = messages.unsubscribe.notSubscribed;
     } else if (result.persisted) {
-      reply =
-        "We've removed you from our subscriber list. 👋\n\nFeel free to /subscribe anytime if you change your mind. We'd love to have you back!";
+      reply = messages.unsubscribe.farewell;
     } else {
-      reply = "You've been unsubscribed from blog updates.";
+      reply = messages.unsubscribe.farewell;
     }
 
     await sendMessage(botToken, {
@@ -43,7 +43,7 @@ export async function handleUnsubscribeCommand(message, env) {
     console.error("Unsubscribe: Failed to remove subscriber:", err);
     await sendMessage(botToken, {
       chat_id: chatId,
-      text: "❌ Sorry, something went wrong while unsubscribing. Please try again later.",
+      text: messages.unsubscribe.error,
     }).catch((sendErr) => console.warn("Unsubscribe: failed to send error message:", sendErr));
   }
 }

@@ -1,5 +1,6 @@
 import { sendMessage, sendPhoto, answerCallbackQuery } from "../../services/telegram/index.js";
 import { updateGalleryStatus, getGalleryDocument, deleteGalleryDocument } from "../../services/sanityImage.js";
+import { messages } from "../../services/messages.js";
 
 /**
  * Handle moderation callback queries from approve/reject buttons
@@ -22,7 +23,7 @@ export async function handleModerationCallback(callbackQuery, env) {
     console.warn(
       `Security: Unauthorized moderation attempt from chat ${message?.chat?.id}. Moderation restricted to ${moderationChatId}`
     );
-    await answerCallbackQuery(botToken, callbackId, "❌ Unauthorized", true);
+    await answerCallbackQuery(botToken, callbackId, messages.moderation.unauthorized, true);
     return;
   }
 
@@ -38,7 +39,7 @@ export async function handleModerationCallback(callbackQuery, env) {
     docId = data.substring("gallery_reject_".length);
   } else {
     console.warn("Moderation: unknown callback action:", data);
-    await answerCallbackQuery(botToken, callbackId, "❌ Unknown action", true);
+    await answerCallbackQuery(botToken, callbackId, messages.moderation.unauthorized, true);
     return;
   }
 
@@ -48,7 +49,7 @@ export async function handleModerationCallback(callbackQuery, env) {
     // Check if the document has already been moderated (safety check against duplicate actions)
     const galleryDoc = await getGalleryDocument(docId, env);
     if (!galleryDoc) {
-      await answerCallbackQuery(botToken, callbackId, "❌ Image not found", true);
+      await answerCallbackQuery(botToken, callbackId, messages.moderation.imageNotFound, true);
       return;
     }
 
@@ -58,7 +59,7 @@ export async function handleModerationCallback(callbackQuery, env) {
       await answerCallbackQuery(
         botToken,
         callbackId,
-        `⚠️ Already ${currentStatus}. Cannot change decision.`,
+        messages.moderation.alreadyModerated(currentStatus),
         true
       );
       return;
@@ -83,10 +84,10 @@ export async function handleModerationCallback(callbackQuery, env) {
             message_id: message.message_id,
           }),
         });
-        console.log(`Moderation: Deleted moderation message ${message.message_id} from chat ${message.chat.id}`);
+        console.log(`Moderation: ${messages.moderation.deletedMessage}`);
       } catch (err) {
         // If deletion fails, fall back to removing buttons by editing the message
-        console.warn("Moderation: failed to delete message, attempting to remove buttons:", err);
+        console.warn(`Moderation: ${messages.moderation.failedDelete}:`, err);
         try {
           await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/editMessageText`, {
             method: "POST",
@@ -100,7 +101,7 @@ export async function handleModerationCallback(callbackQuery, env) {
             }),
           });
         } catch (editErr) {
-          console.warn("Moderation: failed to edit message:", editErr);
+          console.warn(`Moderation: ${messages.moderation.failedEdit}:`, editErr);
         }
       }
     }
@@ -114,7 +115,7 @@ export async function handleModerationCallback(callbackQuery, env) {
         if (newStatus === "approved") {
           // Approval notification
           const imageUrl = galleryDoc.image?.asset?.url;
-          const approvalCaption = "🎉 <b>Photo Approved!</b>\n\nGreat news! Your photo was approved and is now live in the gallery!";
+          const approvalCaption = messages.moderation_notification.approvalCaption;
           
           if (imageUrl) {
             await sendPhoto(botToken, {
@@ -134,10 +135,7 @@ export async function handleModerationCallback(callbackQuery, env) {
         } else {
           // Rejection notification (with image and contact info)
           const imageUrl = galleryDoc.image?.asset?.url;
-          const rejectionCaption =
-            "❌ <b>Photo Not Approved</b>\n\n" +
-            "Unfortunately, your photo submission did not meet our guidelines.\n\n" +
-            "For questions about this decision, please contact the admin: @rootz491";
+          const rejectionCaption = messages.moderation_notification.rejectionCaption;
 
           if (imageUrl) {
             await sendPhoto(botToken, {
@@ -165,7 +163,7 @@ export async function handleModerationCallback(callbackQuery, env) {
         }
       }
     } catch (err) {
-      console.warn("Moderation: failed to notify uploader:", err);
+      console.warn(`Moderation: ${messages.moderation.failedNotify}:`, err);
     }
   } catch (err) {
     console.error("Moderation: update failed:", err);
