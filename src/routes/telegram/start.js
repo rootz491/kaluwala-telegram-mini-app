@@ -17,8 +17,9 @@ export async function handleStartCommand(message, env) {
   const homePageUrl = env.BLOG_URL || "https://kaluwala.in";
 
   let openUrl = telegramPageUrl;
+  let subscribed = false;
   try {
-    const subscribed = await isSubscribed(chatId, env);
+    subscribed = await isSubscribed(chatId, env);
     if (subscribed) {
       openUrl = homePageUrl;
     }
@@ -36,7 +37,7 @@ export async function handleStartCommand(message, env) {
       inline_keyboard: [
         [{ text: "Open in Telegram", web_app: { url: openUrl } }],
         [{ text: "Open in Web", url: openUrl }],
-        [{ text: "Subscribe", web_app: { url: telegramPageUrl } }],
+        ...(subscribed ? [] : [[{ text: "Subscribe", web_app: { url: telegramPageUrl } }]]),
       ],
     },
   };
