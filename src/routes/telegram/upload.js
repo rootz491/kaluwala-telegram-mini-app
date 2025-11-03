@@ -224,6 +224,10 @@ async function processPhotoUpload(message, env) {
       console.log(
         `Upload: Admin ${chatId} image auto-approved, docId: ${galleryDocId}`
       );
+
+      await revalidateWebsitePages(env, ["/gallery"]).catch((err) =>
+        console.warn("Upload: failed to revalidate gallery page:", err)
+      );
     } else {
       // Regular user upload: send to moderation
       await sendMessage(botToken, {

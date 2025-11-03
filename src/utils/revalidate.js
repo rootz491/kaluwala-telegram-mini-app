@@ -2,7 +2,10 @@
  * Trigger page revalidation on the blog website
  * This is typically called after new content is published
  */
-export async function revalidateBlogPages(env, paths = ["/blog", "/blog/all"]) {
+export async function revalidateWebsitePages(
+  env,
+  paths = ["/blog", "/blog/all", "/gallery"]
+) {
   const blogUrl = env.BLOG_URL;
   const revalidateSecret = env.REVALIDATE_SECRET;
 

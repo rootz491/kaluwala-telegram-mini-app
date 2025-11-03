@@ -1,7 +1,7 @@
 import { parseJson, verifySanitySignature } from "../utils/http.js";
 import { sendPhoto } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
-import { revalidateBlogPages } from "../utils/revalidate.js";
+import { revalidateWebsitePages } from "../utils/revalidate.js";
 
 /**
  * Handle Sanity CMS webhook for new blog posts
@@ -50,7 +50,7 @@ export async function handleSanityWebhook(request, env) {
     revalidatePaths.push(`/blog/${slug}`);
   }
 
-  revalidateBlogPages(env, revalidatePaths).catch((err) => {
+  revalidateWebsitePages(env, revalidatePaths).catch((err) => {
     console.error("Sanity: Revalidation failed but continuing:", err);
   });
 
