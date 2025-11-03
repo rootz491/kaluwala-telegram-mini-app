@@ -144,7 +144,16 @@ export async function getGalleryDocument(docId, env) {
     throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_API_TOKEN not configured in env");
   }
 
-  const query = `*[_id == "${docId}"][0]`;
+  // GROQ query with expanded image asset to get URL
+  const query = `*[_id == "${docId}"][0] {
+    ...,
+    image {
+      asset -> {
+        _id,
+        url
+      }
+    }
+  }`;
   const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}?query=${encodeURIComponent(query)}`;
 
   const resp = await fetch(url, {

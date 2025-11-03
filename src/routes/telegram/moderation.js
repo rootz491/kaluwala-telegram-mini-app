@@ -114,18 +114,21 @@ export async function handleModerationCallback(callbackQuery, env) {
         if (newStatus === "approved") {
           // Approval notification
           const imageUrl = galleryDoc.image?.asset?.url;
-          const notificationText = "🎉 Great news! Your photo was approved and is now live in the gallery!";
+          const approvalCaption = "🎉 <b>Photo Approved!</b>\n\nGreat news! Your photo was approved and is now live in the gallery!";
+          
           if (imageUrl) {
             await sendPhoto(botToken, {
               chat_id: galleryDoc.telegramId,
               photo: imageUrl,
-              caption: notificationText,
+              caption: approvalCaption,
               parse_mode: "HTML",
             });
           } else {
+            // Fallback if no image URL
             await sendMessage(botToken, {
               chat_id: galleryDoc.telegramId,
-              text: notificationText,
+              text: approvalCaption,
+              parse_mode: "HTML",
             });
           }
         } else {
