@@ -36,27 +36,54 @@ export async function handlePendingCommand(message, env) {
       return;
     }
 
-    // Build message with pending images list
-    let messageText = `📋 <b>Pending Gallery Submissions</b>\n\nTotal: <b>${pendingImages.length}</b> pending image(s)\n\n`;
+    // Send summary/meta info first
+    const summaryText = `📋 <b>Pending Gallery Submissions</b>\n\nTotal: <b>${pendingImages.length}</b> pending image(s) awaiting review`;
 
-    pendingImages.forEach((img, index) => {
+    await sendMessage(botToken, {
+      chat_id: chatId,
+      text: summaryText,
+      parse_mode: "HTML",
+    });
+
+    // Send one message per pending image with photo and moderation buttons
+    for (let i = 0; i < pendingImages.length; i++) {
+      const img = pendingImages[i];
       const userName = img.firstName || "Unknown";
       const userHandle = img.username ? `@${img.username}` : `User ${img.telegramId}`;
       const uploadDate = img._createdAt ? new Date(img._createdAt).toLocaleString() : "Unknown";
       const docId = img._id || "N/A";
+      const imageUrl = img.image?.asset?.url;
 
-      messageText += `<b>${index + 1}.</b> ${userName} (${userHandle})\n`;
-      messageText += `   📅 Submitted: ${uploadDate}\n`;
-      messageText += `   🆔 ID: <code>${docId}</code>\n\n`;
-    });
+      const imageCaption = `<b>#${i + 1}</b> ${userName} (${userHandle})\n📅 ${uploadDate}\n🆔 <code>${docId}</code>`;
 
-    messageText += `<i>Use the approve/reject buttons to moderate individual submissions.</i>`;
+      // Build keyboard with open in browser button and moderation buttons
+      const replyMarkup = {
+        inline_keyboard: [
+          [
+            {
+              text: "🌐 Open in Browser",
+              url: imageUrl || "#",
+            },
+          ],
+          [
+            { text: "✅ Approve", callback_data: `gallery_approve_${docId}` },
+            { text: "❌ Reject", callback_data: `gallery_reject_${docId}` },
+          ],
+        ],
+      };
 
-    await sendMessage(botToken, {
-      chat_id: chatId,
-      text: messageText,
-      parse_mode: "HTML",
-    });
+      try {
+        await sendMessage(botToken, {
+          chat_id: chatId,
+          photo: imageUrl,
+          caption: imageCaption,
+          parse_mode: "HTML",
+          reply_markup: replyMarkup,
+        });
+      } catch (err) {
+        console.warn(`Pending: failed to send image ${i + 1} (${docId}):`, err);
+      }
+    }
 
     console.log(`Pending: Listed ${pendingImages.length} pending images for moderator`);
   } catch (err) {
