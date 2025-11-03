@@ -272,3 +272,56 @@ export function buildImageUrl(galleryDoc, projectId) {
   const imageUrl = `https://cdn.sanity.io/images/${projectId}/production/${assetRef}?auto=format&w=600`;
   return imageUrl;
 }
+
+/**
+ * Delete gallery document and its associated image asset from Sanity
+ * Used when rejecting an image submission
+ */
+export async function deleteGalleryDocument(docId, env) {
+  const projectId = env.SANITY_PROJECT_ID;
+  const dataset = "production";
+  const token = env.SANITY_API_TOKEN;
+
+  if (!projectId || !token) {
+    throw new Error("Sanity: SANITY_PROJECT_ID or SANITY_API_TOKEN not configured in env");
+  }
+
+  try {
+    // First, get the document to find the asset ID
+    const galleryDoc = await getGalleryDocument(docId, env);
+    if (!galleryDoc) {
+      throw new Error(`Gallery document ${docId} not found`);
+    }
+
+    const assetId = galleryDoc.image?.asset?._id;
+    const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/mutate/${dataset}`;
+
+    // Build mutations to delete both the gallery document and its asset
+    const mutations = [
+      { delete: { id: docId } }, // Delete gallery document
+    ];
+
+    // Add asset deletion if we found an asset ID
+    if (assetId) {
+      mutations.push({ delete: { id: assetId } }); // Delete image asset
+    }
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ mutations }),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "<no body>");
+      throw new Error(`Sanity delete failed ${resp.status}: ${text}`);
+    }
+
+    return resp.json();
+  } catch (err) {
+    throw new Error(`deleteGalleryDocument: ${err.message}`);
+  }
+}

@@ -1,5 +1,5 @@
-import { sendMessage, answerCallbackQuery } from "../../services/telegram/index.js";
-import { updateGalleryStatus, getGalleryDocument } from "../../services/sanityImage.js";
+import { sendMessage, sendPhoto, answerCallbackQuery } from "../../services/telegram/index.js";
+import { updateGalleryStatus, getGalleryDocument, deleteGalleryDocument } from "../../services/sanityImage.js";
 
 /**
  * Handle moderation callback queries from approve/reject buttons
@@ -75,19 +75,59 @@ export async function handleModerationCallback(callbackQuery, env) {
 
     console.log(`Moderation: ${newStatus} gallery document ${docId} by moderator ${moderatorId}`);
 
-    // Optionally notify the original uploader
+    // Notify the original uploader
     try {
       const galleryDoc = await getGalleryDocument(docId, env);
       if (galleryDoc && galleryDoc.telegramId) {
-        const notificationText =
-          newStatus === "approved"
-            ? "🎉 Great news! Your photo was approved and is now live in the gallery!"
-            : "📝 Your photo submission was not approved. You can try uploading another one!";
+        if (newStatus === "approved") {
+          // Approval notification
+          const imageUrl = galleryDoc.image?.asset?.url;
+          const notificationText = "🎉 Great news! Your photo was approved and is now live in the gallery!";
+          if (imageUrl) {
+            await sendPhoto(botToken, {
+              chat_id: galleryDoc.telegramId,
+              photo: imageUrl,
+              caption: notificationText,
+              parse_mode: "HTML",
+            });
+          } else {
+            await sendMessage(botToken, {
+              chat_id: galleryDoc.telegramId,
+              text: notificationText,
+            });
+          }
+        } else {
+          // Rejection notification (with image and contact info)
+          const imageUrl = galleryDoc.image?.asset?.url;
+          const rejectionCaption =
+            "❌ <b>Photo Not Approved</b>\n\n" +
+            "Unfortunately, your photo submission did not meet our guidelines.\n\n" +
+            "For questions about this decision, please contact the admin: @rootz491";
 
-        await sendMessage(botToken, {
-          chat_id: galleryDoc.telegramId,
-          text: notificationText,
-        });
+          if (imageUrl) {
+            await sendPhoto(botToken, {
+              chat_id: galleryDoc.telegramId,
+              photo: imageUrl,
+              caption: rejectionCaption,
+              parse_mode: "HTML",
+            });
+          } else {
+            // Fallback if no image URL
+            await sendMessage(botToken, {
+              chat_id: galleryDoc.telegramId,
+              text: rejectionCaption,
+              parse_mode: "HTML",
+            });
+          }
+
+          // After sending rejection message, delete the document and asset from Sanity
+          try {
+            await deleteGalleryDocument(docId, env);
+            console.log(`Moderation: Deleted rejected gallery document ${docId} and its asset`);
+          } catch (deleteErr) {
+            console.warn(`Moderation: failed to delete rejected document ${docId}:`, deleteErr);
+          }
+        }
       }
     } catch (err) {
       console.warn("Moderation: failed to notify uploader:", err);
