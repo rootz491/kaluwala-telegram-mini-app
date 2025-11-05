@@ -131,16 +131,13 @@ Check it out now!`;
           };
           discussionResponse = await sendPhoto(botToken, discussionPayload);
         } else {
-          // No image, use sendMessage with link buttons
+          // No image, use sendMessage with simple URL button (web_app not supported with text messages in some cases)
           const discussionPayload = {
             chat_id: discussionChannelId,
             text: messageText,
             parse_mode: "HTML",
             reply_markup: {
-              inline_keyboard: [
-                [{ text: "🌐 open in web", url: postUrl }],
-                [{ text: "📖 open in telegram", web_app: { url: postUrl } }],
-              ],
+              inline_keyboard: [[{ text: "🌐 Read on blog", url: postUrl }]],
             },
           };
           discussionResponse = await sendMessage(botToken, discussionPayload);
