@@ -55,7 +55,7 @@ export async function handleTelegramUpdate(request, env) {
 
   console.log({
     update,
-    chatId,
+    message,
   });
 
   // Handle Web App sendData payload
