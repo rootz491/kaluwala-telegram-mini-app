@@ -20,7 +20,7 @@ import {
 export async function handleTelegramUpdate(request, env) {
   let update;
 
-  console.log(request.message.chat?.id);
+  console.log(Object.keys(request));
 
   try {
     update = await parseJson(request);
