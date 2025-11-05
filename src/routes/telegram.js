@@ -19,6 +19,9 @@ import {
  */
 export async function handleTelegramUpdate(request, env) {
   let update;
+
+  console.log(request);
+
   try {
     update = await parseJson(request);
   } catch (err) {
@@ -52,11 +55,6 @@ export async function handleTelegramUpdate(request, env) {
   if (!message) {
     return new Response("ok", { status: 200 });
   }
-
-  console.log({
-    update,
-    message,
-  });
 
   // Handle Web App sendData payload
   if (message.web_app_data) {
