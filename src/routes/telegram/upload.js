@@ -239,64 +239,22 @@ async function processPhotoUpload(message, env) {
       // Send to moderation chat if configured
       if (env.MODERATION_CHAT_ID && galleryDocId) {
         try {
-          // Build image URL from asset ID
-          const imageUrl = `https://cdn.sanity.io/images/${env.SANITY_PROJECT_ID}/production/${assetId}?auto=format&w=600`;
           const userHandle = message?.from?.username
             ? `@${message.from.username}`
             : `User ${chatId}`;
           const userName = message?.from?.first_name || "Unknown";
 
-          // Create caption with submission details
-          const moderationCaption = messages.moderation_caption.submission(
+          const moderationText = messages.moderation_caption.submission(
             userName,
             userHandle,
             galleryDocId
           );
 
-          // Send photo with buttons and caption in a single message
-          if (imageUrl) {
-            await sendPhoto(botToken, {
-              chat_id: env.MODERATION_CHAT_ID,
-              photo: imageUrl,
-              caption: moderationCaption,
-              parse_mode: "HTML",
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    {
-                      text: messages.buttons.approve,
-                      callback_data: `gallery_approve_${galleryDocId}`,
-                    },
-                    {
-                      text: messages.buttons.reject,
-                      callback_data: `gallery_reject_${galleryDocId}`,
-                    },
-                  ],
-                ],
-              },
-            });
-          } else {
-            // Fallback: send text message with buttons if image URL not available
-            await sendMessage(botToken, {
-              chat_id: env.MODERATION_CHAT_ID,
-              text: moderationCaption,
-              parse_mode: "HTML",
-              reply_markup: {
-                inline_keyboard: [
-                  [
-                    {
-                      text: messages.buttons.approve,
-                      callback_data: `gallery_approve_${galleryDocId}`,
-                    },
-                    {
-                      text: messages.buttons.reject,
-                      callback_data: `gallery_reject_${galleryDocId}`,
-                    },
-                  ],
-                ],
-              },
-            });
-          }
+          await sendMessage(botToken, {
+            chat_id: env.MODERATION_CHAT_ID,
+            text: moderationText,
+            parse_mode: "HTML",
+          });
         } catch (err) {
           console.warn("Upload: failed to send to moderation chat:", err);
         }
