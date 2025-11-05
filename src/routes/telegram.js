@@ -20,7 +20,7 @@ import {
 export async function handleTelegramUpdate(request, env) {
   let update;
 
-  console.log(request);
+  console.log(JSON.stringify(request, null, 2));
 
   try {
     update = await parseJson(request);
