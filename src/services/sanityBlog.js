@@ -17,8 +17,7 @@ export async function updateBlogMessageId(docId, messageId, env) {
         patch: {
           id: docId,
           set: {
-            messageId: String(messageId),
-            messageSentAt: new Date().toISOString(),
+            telegramId: String(messageId),
           },
         },
       },
