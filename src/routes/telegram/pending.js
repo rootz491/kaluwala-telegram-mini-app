@@ -5,11 +5,10 @@ import { messages } from "../../services/messages.js";
 /**
  * Handle /pending command
  * Lists all pending gallery images with metadata
- * RESTRICTED: Only works in MODERATION_CHAT_ID
+ * RESTRICTED: Only admins can run this command (ADMIN_IDS env var)
  */
 export async function handlePendingCommand(message, env) {
   const chatId = message.chat?.id;
-  const moderationChatId = env.MODERATION_CHAT_ID;
   const botToken = env.BOT_TOKEN;
 
   if (!botToken) {
@@ -17,12 +16,18 @@ export async function handlePendingCommand(message, env) {
     return;
   }
 
-  // Security check: only allow in moderation chat
-  if (moderationChatId && chatId !== Number(moderationChatId)) {
+  const adminIds = (env.ADMIN_IDS || "")
+    .split(",")
+    .map((id) => String(id).trim())
+    .filter((id) => id);
+
+  const isAdmin = adminIds.includes(String(chatId));
+
+  if (!isAdmin) {
     console.warn(
-      `Security: Unauthorized /pending command from chat ${chatId}. Restricted to ${moderationChatId}`
+      `Security: Unauthorized /pending command from user ${chatId}. Admin only.`
     );
-    return; // Silent deny
+    return;
   }
 
   try {
@@ -50,12 +55,18 @@ export async function handlePendingCommand(message, env) {
     for (let i = 0; i < pendingImages.length; i++) {
       const img = pendingImages[i];
       const userName = img.firstName || "Unknown";
-      const userHandle = img.username ? `@${img.username}` : `User ${img.telegramId}`;
-      const uploadDate = img._createdAt ? new Date(img._createdAt).toLocaleString() : "Unknown";
+      const userHandle = img.username
+        ? `@${img.username}`
+        : `User ${img.telegramId}`;
+      const uploadDate = img._createdAt
+        ? new Date(img._createdAt).toLocaleString()
+        : "Unknown";
       const docId = img._id || "N/A";
       const imageUrl = img.image?.asset?.url;
 
-      const imageCaption = `<b>#${i + 1}</b> ${userName} (${userHandle})\n📅 ${uploadDate}\n🆔 <code>${docId}</code>`;
+      const imageCaption = `<b>#${
+        i + 1
+      }</b> ${userName} (${userHandle})\n📅 ${uploadDate}\n🆔 <code>${docId}</code>`;
 
       // Build keyboard with open in browser button and moderation buttons
       const replyMarkup = {
@@ -67,8 +78,14 @@ export async function handlePendingCommand(message, env) {
             },
           ],
           [
-            { text: messages.buttons.approve, callback_data: `gallery_approve_${docId}` },
-            { text: messages.buttons.reject, callback_data: `gallery_reject_${docId}` },
+            {
+              text: messages.buttons.approve,
+              callback_data: `gallery_approve_${docId}`,
+            },
+            {
+              text: messages.buttons.reject,
+              callback_data: `gallery_reject_${docId}`,
+            },
           ],
         ],
       };
@@ -86,12 +103,16 @@ export async function handlePendingCommand(message, env) {
       }
     }
 
-    console.log(`Pending: Listed ${pendingImages.length} pending images for moderator`);
+    console.log(
+      `Pending: Listed ${pendingImages.length} pending images for moderator`
+    );
   } catch (err) {
     console.error("Pending: failed to fetch pending images:", err);
     await sendMessage(botToken, {
       chat_id: chatId,
       text: messages.pending.errorFetch(String(err).substring(0, 100)),
-    }).catch((sendErr) => console.warn("Pending: failed to send error:", sendErr));
+    }).catch((sendErr) =>
+      console.warn("Pending: failed to send error:", sendErr)
+    );
   }
 }
