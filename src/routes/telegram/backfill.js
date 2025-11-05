@@ -1,4 +1,4 @@
-import { sendPhoto } from "../../services/telegram/index.js";
+import { sendPhoto, sendMessage } from "../../services/telegram/index.js";
 import {
   fetchBlogPostsWithoutMessageId,
   updateBlogMessageId,
@@ -42,7 +42,7 @@ export async function handleBackfillCommand(message, env) {
 
   if (!botToken || !discussionChannelId) {
     try {
-      await sendPhoto(botToken, {
+      await sendMessage(botToken, {
         chat_id: chatId,
         text: "❌ Missing configuration: BOT_TOKEN or DISCUSSION_CHANNEL_ID",
         parse_mode: "HTML",
@@ -57,7 +57,7 @@ export async function handleBackfillCommand(message, env) {
 
   try {
     // Send initial status message
-    const initialMsg = await sendPhoto(botToken, {
+    const initialMsg = await sendMessage(botToken, {
       chat_id: chatId,
       text: "⏳ Starting backfill process...\n\nFetching blog posts from Sanity...",
       parse_mode: "HTML",
@@ -86,7 +86,7 @@ export async function handleBackfillCommand(message, env) {
               parse_mode: "HTML",
             };
 
-      await sendPhoto(botToken, msg);
+      await sendMessage(botToken, msg);
       return;
     }
 
@@ -111,24 +111,40 @@ export async function handleBackfillCommand(message, env) {
 ✍️ By ${authorName}
 Check it out now!`;
 
-        // Send to discussion channel
-        const discussionPayload = {
-          chat_id: discussionChannelId,
-          photo: blog.mainImage?.asset?.url,
-          caption: messageText,
-          text: messageText,
-          parse_mode: "HTML",
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: "🌐 open in web", url: postUrl },
-                { text: "📖 open in telegram", web_app: { url: postUrl } },
-              ],
-            ],
-          },
-        };
+        const hasImage = blog.mainImage?.asset?.url;
 
-        const discussionResponse = await sendPhoto(botToken, discussionPayload);
+        // Send to discussion channel (use sendPhoto if image exists, else sendMessage)
+        let discussionResponse;
+
+        if (hasImage) {
+          const discussionPayload = {
+            chat_id: discussionChannelId,
+            photo: blog.mainImage.asset.url,
+            caption: messageText,
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🌐 open in web", url: postUrl }],
+                [{ text: "📖 open in telegram", web_app: { url: postUrl } }],
+              ],
+            },
+          };
+          discussionResponse = await sendPhoto(botToken, discussionPayload);
+        } else {
+          // No image, use sendMessage with link buttons
+          const discussionPayload = {
+            chat_id: discussionChannelId,
+            text: messageText,
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🌐 open in web", url: postUrl }],
+                [{ text: "📖 open in telegram", web_app: { url: postUrl } }],
+              ],
+            },
+          };
+          discussionResponse = await sendMessage(botToken, discussionPayload);
+        }
 
         if (discussionResponse?.result?.message_id && blog._id) {
           const messageId = discussionResponse.result.message_id;
@@ -153,23 +169,18 @@ Check it out now!`;
 
       // Update status message every 5 posts
       if ((i + 1) % 5 === 0 || i + 1 === blogs.length) {
-        const msg =
-          statusMessageId && botToken
-            ? {
-                method: "editMessageText",
-                chat_id: chatId,
-                message_id: statusMessageId,
-                text: `⏳ Processing: <b>${progress}</b>\n\n✅ Success: ${successCount}\n❌ Failed: ${failureCount}`,
-                parse_mode: "HTML",
-              }
-            : {
-                chat_id: chatId,
-                text: `⏳ Processing: <b>${progress}</b>\n\n✅ Success: ${successCount}\n❌ Failed: ${failureCount}`,
-                parse_mode: "HTML",
-              };
+        const updatePayload = {
+          chat_id: chatId,
+          text: `⏳ Processing: <b>${progress}</b>\n\n✅ Success: ${successCount}\n❌ Failed: ${failureCount}`,
+          parse_mode: "HTML",
+        };
+
+        if (statusMessageId) {
+          updatePayload.message_id = statusMessageId;
+        }
 
         try {
-          await sendPhoto(botToken, msg);
+          await sendMessage(botToken, updatePayload);
         } catch (err) {
           console.error("Backfill: Failed to update status:", err);
         }
@@ -182,21 +193,23 @@ Check it out now!`;
     }
 
     // Final summary
-    const summaryMsg = {
-      method: "editMessageText",
+    const summaryPayload = {
       chat_id: chatId,
-      message_id: statusMessageId,
       text: `✅ Backfill complete!\n\n📊 Results:\n✅ Success: ${successCount}\n❌ Failed: ${failureCount}\n📝 Total: ${blogs.length}`,
       parse_mode: "HTML",
     };
 
+    if (statusMessageId) {
+      summaryPayload.message_id = statusMessageId;
+    }
+
     try {
-      await sendPhoto(botToken, summaryMsg);
+      await sendMessage(botToken, summaryPayload);
     } catch (err) {
       console.error("Backfill: Failed to send final summary:", err);
       // Send as new message if edit fails
       try {
-        await sendPhoto(botToken, {
+        await sendMessage(botToken, {
           chat_id: chatId,
           text: `✅ Backfill complete!\n\n📊 Results:\n✅ Success: ${successCount}\n❌ Failed: ${failureCount}\n📝 Total: ${blogs.length}`,
           parse_mode: "HTML",
@@ -209,22 +222,17 @@ Check it out now!`;
     console.error("Backfill: Fatal error:", err);
 
     try {
-      const errorMsg =
-        statusMessageId && botToken
-          ? {
-              method: "editMessageText",
-              chat_id: chatId,
-              message_id: statusMessageId,
-              text: `❌ Backfill failed:\n\n<code>${err.message}</code>`,
-              parse_mode: "HTML",
-            }
-          : {
-              chat_id: chatId,
-              text: `❌ Backfill failed:\n\n<code>${err.message}</code>`,
-              parse_mode: "HTML",
-            };
+      const errorPayload = {
+        chat_id: chatId,
+        text: `❌ Backfill failed:\n\n<code>${err.message}</code>`,
+        parse_mode: "HTML",
+      };
 
-      await sendPhoto(botToken, errorMsg);
+      if (statusMessageId) {
+        errorPayload.message_id = statusMessageId;
+      }
+
+      await sendMessage(botToken, errorPayload);
     } catch (err2) {
       console.error("Backfill: Failed to send error message:", err2);
     }
