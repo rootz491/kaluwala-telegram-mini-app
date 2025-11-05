@@ -20,14 +20,14 @@ import {
 export async function handleTelegramUpdate(request, env) {
   let update;
 
-  console.log(Object.keys(request));
-
   try {
     update = await parseJson(request);
   } catch (err) {
     console.error("Telegram: Failed to parse JSON:", err);
     return new Response("Bad Request", { status: 400 });
   }
+
+  console.log("Telegram: Update received:", JSON.stringify(update, null, 2));
 
   // Handle callback_query from inline buttons
   if (update.callback_query) {
@@ -52,6 +52,19 @@ export async function handleTelegramUpdate(request, env) {
 
   // Extract message from various update types
   const message = update.message || update.edited_message;
+  const channelPost = update.channel_post || update.edited_channel_post;
+
+  // For channel posts, we can't process them the same way (no user context)
+  if (channelPost && !message) {
+    console.log(
+      `Telegram: Channel post received in ${channelPost.chat?.id}:`,
+      channelPost.text
+    );
+    // Channel posts don't have 'from' field, so we can't identify the user
+    // Just acknowledge and return
+    return new Response("ok", { status: 200 });
+  }
+
   if (!message) {
     return new Response("ok", { status: 200 });
   }
