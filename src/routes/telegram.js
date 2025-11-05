@@ -31,7 +31,11 @@ export async function handleTelegramUpdate(request, env) {
     try {
       const { data } = update.callback_query;
       // Route to moderation handler for gallery approve/reject
-      if (data && (data.startsWith("gallery_approve_") || data.startsWith("gallery_reject_"))) {
+      if (
+        data &&
+        (data.startsWith("gallery_approve_") ||
+          data.startsWith("gallery_reject_"))
+      ) {
         await handleModerationCallback(update.callback_query, env);
       } else {
         // Handle other callback queries
@@ -48,6 +52,11 @@ export async function handleTelegramUpdate(request, env) {
   if (!message) {
     return new Response("ok", { status: 200 });
   }
+
+  console.log({
+    update,
+    chatId,
+  });
 
   // Handle Web App sendData payload
   if (message.web_app_data) {
@@ -81,7 +90,9 @@ export async function handleTelegramUpdate(request, env) {
   if (text.toLowerCase().startsWith("/start")) {
     // Only allow in DM (chat type "private")
     if (message.chat?.type !== "private") {
-      console.warn(`Security: /start command blocked in ${message.chat?.type} chat ${chatId}`);
+      console.warn(
+        `Security: /start command blocked in ${message.chat?.type} chat ${chatId}`
+      );
       return new Response("ok", { status: 200 });
     }
     try {
@@ -95,7 +106,9 @@ export async function handleTelegramUpdate(request, env) {
   if (text.toLowerCase().startsWith("/subscribe")) {
     // Only allow in DM (chat type "private")
     if (message.chat?.type !== "private") {
-      console.warn(`Security: /subscribe command blocked in ${message.chat?.type} chat ${chatId}`);
+      console.warn(
+        `Security: /subscribe command blocked in ${message.chat?.type} chat ${chatId}`
+      );
       return new Response("ok", { status: 200 });
     }
     try {
@@ -109,7 +122,9 @@ export async function handleTelegramUpdate(request, env) {
   if (text.toLowerCase().startsWith("/unsubscribe")) {
     // Only allow in DM (chat type "private")
     if (message.chat?.type !== "private") {
-      console.warn(`Security: /unsubscribe command blocked in ${message.chat?.type} chat ${chatId}`);
+      console.warn(
+        `Security: /unsubscribe command blocked in ${message.chat?.type} chat ${chatId}`
+      );
       return new Response("ok", { status: 200 });
     }
     try {
@@ -123,7 +138,9 @@ export async function handleTelegramUpdate(request, env) {
   if (text.toLowerCase().startsWith("/upload")) {
     // Only allow in DM (chat type "private")
     if (message.chat?.type !== "private") {
-      console.warn(`Security: /upload command blocked in ${message.chat?.type} chat ${chatId}`);
+      console.warn(
+        `Security: /upload command blocked in ${message.chat?.type} chat ${chatId}`
+      );
       return new Response("ok", { status: 200 });
     }
     try {
