@@ -7,3 +7,4 @@ export { handleUploadCommand } from "./upload.js";
 export { handleModerationCallback } from "./moderation.js";
 export { handleChatIdCommand } from "./chatid.js";
 export { handlePendingCommand } from "./pending.js";
+export { handleBackfillCommand } from "./backfill.js";

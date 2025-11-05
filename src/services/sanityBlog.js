@@ -41,3 +41,47 @@ export async function updateBlogMessageId(docId, messageId, env) {
 
   return resp.json();
 }
+
+/**
+ * Fetch all published blog posts from Sanity that don't have a messageId yet
+ * Used for backfilling discussion channel messages for existing posts
+ */
+export async function fetchBlogPostsWithoutMessageId(env) {
+  const projectId = env.SANITY_PROJECT_ID;
+  const dataset = "production";
+  const token = env.SANITY_API_TOKEN;
+
+  if (!projectId || !token) {
+    throw new Error(
+      "Sanity: SANITY_PROJECT_ID or SANITY_API_TOKEN not configured in env"
+    );
+  }
+
+  const groqQuery = `
+    *[_type == "post" && defined(slug) && !defined(messageId) && defined(publishedAt)] | order(publishedAt desc) {
+      _id,
+      title,
+      slug,
+      author-> { name },
+      mainImage { asset { url } },
+      publishedAt
+    }
+  `;
+
+  const url = `https://${projectId}.api.sanity.io/v2022-12-07/data/query/${dataset}`;
+
+  const resp = await fetch(`${url}?query=${encodeURIComponent(groqQuery)}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "<no body>");
+    throw new Error(`Sanity query failed ${resp.status}: ${text}`);
+  }
+
+  const data = await resp.json();
+  return data.result || [];
+}

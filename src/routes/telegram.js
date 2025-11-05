@@ -9,6 +9,7 @@ import {
   handleModerationCallback,
   handleChatIdCommand,
   handlePendingCommand,
+  handleBackfillCommand,
 } from "./telegram/index.js";
 
 /**
@@ -170,6 +171,15 @@ export async function handleTelegramUpdate(request, env) {
       await handlePendingCommand(message, env);
     } catch (err) {
       console.error("Telegram: Pending command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/backfill")) {
+    try {
+      await handleBackfillCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Backfill command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }
