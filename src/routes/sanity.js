@@ -2,6 +2,7 @@ import { parseJson, verifySanitySignature } from "../utils/http.js";
 import { sendPhoto } from "../services/telegram/index.js";
 import { listSubscribers } from "../services/subscribers/index.js";
 import { revalidateWebsitePages } from "../utils/revalidate.js";
+import { updateBlogMessageId } from "../services/sanityBlog.js";
 
 /**
  * Handle Sanity CMS webhook for new blog posts
@@ -98,6 +99,49 @@ Check it out now!`;
   // Batch sends: send N at a time using Promise.all, then wait between batches
   const batchSize = Number(env.BATCH_SIZE) || 5; // default 5 per batch
   const batchDelayMs = Number(env.BATCH_DELAY_MS) || 1000; // default 1s between batches
+
+  // Send to discussion channel if configured
+  let discussionMessageId = null;
+  const discussionChannelId = env.DISCUSSION_CHANNEL_ID;
+
+  if (discussionChannelId) {
+    try {
+      const discussionPayload = Object.assign(
+        { chat_id: discussionChannelId },
+        payloadTemplate
+      );
+      const discussionResponse = await sendPhoto(botToken, discussionPayload);
+
+      if (
+        discussionResponse &&
+        discussionResponse.result &&
+        discussionResponse.result.message_id
+      ) {
+        discussionMessageId = discussionResponse.result.message_id;
+        console.log(
+          `Sanity: Posted to discussion channel, message ID: ${discussionMessageId}`
+        );
+
+        // Update blog document with message ID
+        const docId = body._id;
+        if (docId) {
+          try {
+            await updateBlogMessageId(docId, discussionMessageId, env);
+            console.log(
+              `Sanity: Updated blog document ${docId} with message ID ${discussionMessageId}`
+            );
+          } catch (err) {
+            console.warn(
+              `Sanity: failed to update blog document with message ID:`,
+              err
+            );
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Sanity: failed to send to discussion channel:", err);
+    }
+  }
 
   // Helper to resolve chat id from different subscriber shapes
   const resolveChatId = (sub) => {

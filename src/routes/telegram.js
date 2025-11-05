@@ -27,8 +27,6 @@ export async function handleTelegramUpdate(request, env) {
     return new Response("Bad Request", { status: 400 });
   }
 
-  console.log("Telegram: Update received:", JSON.stringify(update, null, 2));
-
   // Handle callback_query from inline buttons
   if (update.callback_query) {
     try {
@@ -56,10 +54,6 @@ export async function handleTelegramUpdate(request, env) {
 
   // For channel posts, we can't process them the same way (no user context)
   if (channelPost && !message) {
-    console.log(
-      `Telegram: Channel post received in ${channelPost.chat?.id}:`,
-      channelPost.text
-    );
     // Channel posts don't have 'from' field, so we can't identify the user
     // Just acknowledge and return
     return new Response("ok", { status: 200 });
