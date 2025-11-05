@@ -42,10 +42,10 @@ export async function updateBlogMessageId(docId, messageId, env) {
 }
 
 /**
- * Fetch all published blog posts from Sanity that don't have a messageId yet
+ * Fetch all published blog posts from Sanity that don't have a telegramId yet
  * Used for backfilling discussion channel messages for existing posts
  */
-export async function fetchBlogPostsWithoutMessageId(env) {
+export async function fetchBlogPostsWithoutTelegramId(env) {
   const projectId = env.SANITY_PROJECT_ID;
   const dataset = "production";
   const token = env.SANITY_API_TOKEN;
@@ -57,7 +57,7 @@ export async function fetchBlogPostsWithoutMessageId(env) {
   }
 
   const groqQuery = `
-    *[_type == "post" && defined(slug) && !defined(messageId) && defined(publishedAt)] | order(publishedAt desc) {
+    *[_type == "post" && defined(slug) && !defined(telegramId) && defined(publishedAt)] | order(publishedAt desc) {
       _id,
       title,
       slug,

@@ -1,6 +1,6 @@
 import { sendPhoto, sendMessage } from "../../services/telegram/index.js";
 import {
-  fetchBlogPostsWithoutMessageId,
+  fetchBlogPostsWithoutTelegramId,
   updateBlogMessageId,
 } from "../../services/sanityBlog.js";
 
@@ -68,7 +68,7 @@ export async function handleBackfillCommand(message, env) {
     }
 
     // Fetch blog posts without messageId
-    const blogs = await fetchBlogPostsWithoutMessageId(env);
+    const blogs = await fetchBlogPostsWithoutTelegramId(env);
 
     if (!blogs || blogs.length === 0) {
       const msg =
