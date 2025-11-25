@@ -9,6 +9,7 @@ import { messages } from "../../services/messages.js";
  */
 export async function handlePendingCommand(message, env) {
   const chatId = message.chat?.id;
+  const userId = message.from?.id;
   const botToken = env.BOT_TOKEN;
 
   if (!botToken) {
@@ -21,11 +22,11 @@ export async function handlePendingCommand(message, env) {
     .map((id) => String(id).trim())
     .filter((id) => id);
 
-  const isAdmin = adminIds.includes(String(chatId));
+  const isAdmin = adminIds.includes(String(userId));
 
   if (!isAdmin) {
     console.warn(
-      `Security: Unauthorized /pending command from user ${chatId}. Admin only.`
+      `Security: Unauthorized /pending command from user ${userId}. Admin only.`
     );
     return;
   }
