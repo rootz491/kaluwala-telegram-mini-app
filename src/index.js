@@ -1,6 +1,7 @@
 import { handleTelegramUpdate } from "./routes/telegram.js";
 import { handleSanityWebhook } from "./routes/sanity.js";
 import { handleSubscribeEndpoint } from "./routes/subscribe.js";
+import { handleNotifyWebhook } from "./routes/notify.js";
 
 export default {
   async fetch(request, env) {
@@ -14,9 +15,12 @@ export default {
       return handleSanityWebhook(request, env);
     }
 
-    // HTTP subscribe endpoint (external systems can POST to register a subscriber)
     if (url.pathname === "/subscribe") {
       return handleSubscribeEndpoint(request, env);
+    }
+
+    if (url.pathname === "/notify") {
+      return handleNotifyWebhook(request, env);
     }
 
     if (request.method === "POST") {
