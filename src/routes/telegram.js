@@ -10,6 +10,8 @@ import {
   handleChatIdCommand,
   handlePendingCommand,
   handleBackfillCommand,
+  handleWaterCommand,
+  handleTodayCommand,
 } from "./telegram/index.js";
 
 /**
@@ -180,6 +182,24 @@ export async function handleTelegramUpdate(request, env) {
       await handleBackfillCommand(message, env);
     } catch (err) {
       console.error("Telegram: Backfill command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/water")) {
+    try {
+      await handleWaterCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Water command handler failed:", err);
+    }
+    return new Response("ok", { status: 200 });
+  }
+
+  if (text.toLowerCase().startsWith("/today")) {
+    try {
+      await handleTodayCommand(message, env);
+    } catch (err) {
+      console.error("Telegram: Today command handler failed:", err);
     }
     return new Response("ok", { status: 200 });
   }
