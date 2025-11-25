@@ -3,6 +3,7 @@ import { handleSanityWebhook } from "./routes/sanity.js";
 import { handleSubscribeEndpoint } from "./routes/subscribe.js";
 import { handleNotifyWebhook } from "./routes/notify.js";
 import { handleSeedWebhook } from "./routes/seed.js";
+import { handleAuthWebhook } from "./routes/auth.js";
 
 export default {
   async fetch(request, env) {
@@ -26,6 +27,10 @@ export default {
 
     if (url.pathname === "/seed") {
       return handleSeedWebhook(request, env);
+    }
+
+    if (url.pathname === "/auth") {
+      return handleAuthWebhook(request, env);
     }
 
     if (request.method === "POST") {
