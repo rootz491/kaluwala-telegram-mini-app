@@ -2,6 +2,7 @@ import { handleTelegramUpdate } from "./routes/telegram.js";
 import { handleSanityWebhook } from "./routes/sanity.js";
 import { handleSubscribeEndpoint } from "./routes/subscribe.js";
 import { handleNotifyWebhook } from "./routes/notify.js";
+import { handleSeedWebhook } from "./routes/seed.js";
 
 export default {
   async fetch(request, env) {
@@ -21,6 +22,10 @@ export default {
 
     if (url.pathname === "/notify") {
       return handleNotifyWebhook(request, env);
+    }
+
+    if (url.pathname === "/seed") {
+      return handleSeedWebhook(request, env);
     }
 
     if (request.method === "POST") {
