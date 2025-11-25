@@ -19,7 +19,6 @@ export async function addLineSubscription(env, telegramId, lineId) {
       return {
         telegramId,
         lineIds,
-        subscribedAt: existing?.subscribedAt || new Date().toISOString(),
       };
     }
   );
@@ -36,7 +35,6 @@ export async function removeLineSubscription(env, telegramId, lineId) {
       return {
         telegramId,
         lineIds,
-        subscribedAt: existing?.subscribedAt || new Date().toISOString(),
       };
     }
   );

@@ -16,7 +16,6 @@ export async function upsertUser(env, { telegramId, username, name }) {
       username: username || existing?.username || null,
       name: name || existing?.name || null,
       role: existing?.role || "user",
-      createdAt: existing?.createdAt || new Date().toISOString(),
     })
   );
 }

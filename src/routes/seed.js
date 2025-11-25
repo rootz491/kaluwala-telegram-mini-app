@@ -51,7 +51,6 @@ export async function handleSeedWebhook(request, env) {
         username: null,
         name: "Admin",
         role: "admin",
-        createdAt: new Date().toISOString(),
       });
       results.users.created++;
     }

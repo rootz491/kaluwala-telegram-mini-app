@@ -9,7 +9,6 @@ export async function createSchedule(env, { lineId, startAt, endAt, notes, creat
     status: "upcoming",
     notes: notes || null,
     createdBy,
-    createdAt: new Date().toISOString(),
   });
 }
 
